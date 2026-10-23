@@ -14,7 +14,8 @@
     --ok:#04694b;--ko:#c62828;--na:#5f6b7d;
     --text:#1f2733;--text2:#475569;--text3:#5f6b7d;--sel-bg:#e2f3f7;--shadow:rgba(31,39,51,.14);
     --ease-out:cubic-bezier(.23,1,.32,1);--dur-fast:120ms;--dur:180ms;
-    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Calibri',Roboto,sans-serif;
+    /* Calibri dove c'e' (PC dello studio), altrimenti Carlito (stesse misure, caricato da font-calibri.js) */
+    --sans:Calibri,Carlito,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     --radius:10px;--tap:44px;
   }
   :root[data-theme="dark"]{
@@ -236,6 +237,7 @@
 <script src="modelli/medico.js"></script>
 <script src="modelli/fotovoltaico.js"></script>
 <script src="modelli/r8108.js"></script>
+<script src="font-calibri.js"></script>
 <script src="cartiglio-assets.js"></script>
 <script src="logo-studio.js"></script>
 <script src="gamma-pdf.js"></script>
@@ -398,8 +400,9 @@ function disegnaCopertina(){
   x.fillStyle='#000'; x.textBaseline='alphabetic';
   for(const r of GammaPDF.cartiglioRuns(v)){
     const mm=r.size*25.4/72;
-    x.font=mm*k+'px Helvetica, Arial, sans-serif'; x.textAlign=r.align==='center'?'center':r.align==='right'?'right':'left';
-    x.fillText(r.t, r.x*k, (r.baseline==='middle'?r.y+0.35*mm:r.y)*k);
+    x.font=mm*k+'px Carlito, Calibri, sans-serif'; x.textAlign=r.align==='center'?'center':r.align==='right'?'right':'left';
+    x.textBaseline=r.baseline==='middle'?'middle':'alphabetic';
+    x.fillText(r.t, r.x*k, r.y*k);
   }
   x.strokeStyle='#000'; x.lineWidth=Math.max(1.5,k*0.35);
   for(const nome of v.livelli||[]){ const l=A.livelli[nome]; if(!l) continue; const cx=l.x*c.width, cy=l.y*c.height, s=l.s*c.height;
@@ -409,6 +412,15 @@ function disegnaCopertina(){
     const r=Math.min((bw-2*pad)/im.naturalWidth,(bh-2*pad)/im.naturalHeight); x.drawImage(im,bx+(bw-im.naturalWidth*r)/2,by+(bh-im.naturalHeight*r)/2,im.naturalWidth*r,im.naturalHeight*r); } }
 }
 let copT=null; const copDopo=()=>{ clearTimeout(copT); copT=setTimeout(disegnaCopertina,150); };
+// Carlito (gemello di Calibri) per tutta l'app e per l'anteprima del cartiglio, anche su iPad/iPhone
+(function(){
+  if(!window.GAMMA_FONT||typeof FontFace==='undefined') return;
+  const buf=b64=>{ const s=atob(b64), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u.buffer; };
+  [['regular','400'],['bold','700']].forEach(([k,w])=>{
+    const ff=new FontFace('Carlito',buf(GAMMA_FONT[k].ttf),{weight:w});
+    ff.load().then(f=>{ document.fonts.add(f); disegnaCopertina(); }).catch(()=>{});
+  });
+})();
 
 // ---- tecnici e timbri: solo su questo dispositivo (localStorage), mai nel repository pubblico ----
 function tecnici(){ try{ return JSON.parse(localStorage.getItem('gammaTecnici')||'[]'); }catch(e){ return []; } }

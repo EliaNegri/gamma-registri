@@ -21,6 +21,14 @@ I modelli **non contengono dati di clienti o tecnici**: quelli si inseriscono ne
 
 Le schede Word di partenza sono nella cartella `Registri` dell'Officina (non pubblicata qui).
 
+## Font, cartiglio e timbri
+
+- Tutto in **Calibri**: nel PDF e sull'iPad si usa **Carlito** (`font-calibri.js`), gemello libero di Calibri
+  con le stesse larghezze (SIL OFL, `font/OFL.txt`); Calibri non si può pubblicare. Rigenerare con
+  `python strumenti/prepara_font.py Carlito-Regular.ttf Carlito-Bold.ttf`.
+- Copertina = cartiglio di KAPPA (`cartiglio-assets.js`, da `strumenti/aggiorna_cartiglio.py`).
+- I **timbri non sono nel repository** (è pubblico): si importano su ogni dispositivo da ⚙ Tecnici.
+
 ## Provare l'anteprima
 
 - Online (iPad / iPhone / PC): https://elianegri.github.io/gamma-registri/

@@ -1,6 +1,6 @@
 /* GAMMA - PDF dei registri, generato nella pagina (nessuna libreria, funziona offline).
-   PDF vettoriale A4: font standard Helvetica (WinAnsi), larghezze misurate con il canvas
-   (Arial ha le stesse metriche di Helvetica), firme come immagini JPEG.
+   PDF vettoriale A4 in Calibri: font Carlito incorporato (stesse larghezze di Calibri, font-calibri.js;
+   senza quel file si ripiega su Helvetica). Firme, logo e cartiglio come immagini.
    Uso: GammaPDF.registro(modello, valori, {schede:'tutte'|'compilate'|[id...]}) -> Promise<Blob>
    valori = {intest:{}, schede:{<id>:{ist:[{id:{}, b:{<indice blocco>: ...}}]}}} (come l'app). */
 (function(){
@@ -14,19 +14,28 @@
     '‹': 0x8b, 'Œ': 0x8c, 'Ž': 0x8e, '‘': 0x91, '’': 0x92, '“': 0x93, '”': 0x94, '•': 0x95, '–': 0x96, '—': 0x97, '˜': 0x98,
     '™': 0x99, 'š': 0x9a, '›': 0x9b, 'œ': 0x9c, 'ž': 0x9e, 'Ÿ': 0x9f };
   const norm = s => String(s == null ? '' : s).replace(/[ΩΓ≤≥→✓✗ ]/g, c => SOST[c]);
+  const codice = ch => { const c = ch.charCodeAt(0); return CP[ch] || (c > 255 ? 63 : c); };
   function pdfStr(s) {
     let o = '';
     for (const ch of norm(s)) {
-      let c = ch.charCodeAt(0);
-      if (CP[ch]) c = CP[ch]; else if (c > 255) c = 63;
+      const c = codice(ch);
       if (ch === '(' || ch === ')' || ch === '\\') o += '\\' + ch;
       else if (c < 32 || c > 126) o += '\\' + c.toString(8).padStart(3, '0');
       else o += ch;
     }
     return '(' + o + ')';
   }
+  // font: Carlito incorporato (stesse larghezze di Calibri, font-calibri.js); senza, Helvetica standard
+  const FONT = window.GAMMA_FONT || null;
+  // "middle" del canvas di KAPPA: la linea di base sta (ascendente+discendente)/2 sotto il centro
+  const MEZZO = FONT ? (FONT.regular.ascent + FONT.regular.descent) / 2000 : 0.35;
   const cv = document.createElement('canvas').getContext('2d');
   function larg(s, size, bold) {                      // larghezza in mm
+    if (FONT) {
+      const L = (bold ? FONT.bold : FONT.regular).larghezze; let w = 0;
+      for (const ch of norm(s)) { const c = codice(ch); w += c >= 32 ? L[c - 32] : 0; }
+      return w / 1000 * size / MM;
+    }
     cv.font = (bold ? 'bold ' : '') + '100px Helvetica, Arial, sans-serif';
     return cv.measureText(norm(s)).width / 100 * size / MM;
   }
@@ -96,20 +105,35 @@
       this.img.push({ w: c.width, h: c.height, dati: u, filtro: 'DCTDecode' });
       return this.img.length - 1;
     }
-    blob() {
+    async blob() {
       const enc = new TextEncoder(), parti = [], off = [];
       let pos = 0; const push = b => { const u = typeof b === 'string' ? enc.encode(b) : b; parti.push(u); pos += u.length; };
       const np = this.pagine.length;
-      // 1 catalogo, 2 pagine, 3-4 font, poi immagini (+ eventuale maschera di trasparenza), poi (pagina, contenuto)
+      // 1 catalogo, 2 pagine, 3-4 font (+ descrittore e file se Carlito), poi immagini (+ maschere), poi (pagina, contenuto)
       let next = 5;
+      const idFont = FONT ? [FONT.regular, FONT.bold].map(() => ({ desc: next++, file: next++ })) : null;
       const idImg = this.img.map(im => { const id = next++; if (im.smask) im.idMask = next++; return id; });
       const base = next, idPag = i => base + i * 2, idCont = i => base + 1 + i * 2, tot = base - 1 + np * 2;
       const ogg = (n, corpo) => { off[n] = pos; push(n + ' 0 obj\n'); for (const c of [].concat(corpo)) push(c); push('\nendobj\n'); };
       push('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n');
       ogg(1, '<</Type/Catalog/Pages 2 0 R>>');
       ogg(2, `<</Type/Pages/Count ${np}/Kids[${this.pagine.map((_, i) => idPag(i) + ' 0 R').join(' ')}]>>`);
-      ogg(3, '<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>');
-      ogg(4, '<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>');
+      if (FONT) {
+        // TrueType incorporato (ridotto ai caratteri WinAnsi), larghezze dal font stesso
+        const pesi = [FONT.regular, FONT.bold];
+        for (let k = 0; k < 2; k++) {
+          const F = pesi[k], id = idFont[k], nome = 'GAMMAA' + (k ? 'B' : 'R') + '+' + F.nome;
+          ogg(3 + k, `<</Type/Font/Subtype/TrueType/BaseFont/${nome}/FirstChar ${F.primo}/LastChar ${F.primo + F.larghezze.length - 1}/Widths[${F.larghezze.join(' ')}]/Encoding/WinAnsiEncoding/FontDescriptor ${id.desc} 0 R>>`);
+          ogg(id.desc, `<</Type/FontDescriptor/FontName/${nome}/Flags 32/FontBBox[${F.bbox.join(' ')}]/ItalicAngle 0/Ascent ${F.ascent}/Descent ${F.descent}/CapHeight ${F.capHeight}/StemV ${k ? 120 : 80}/FontFile2 ${id.file} 0 R>>`);
+          const bin = atob(F.ttf), raw = new Uint8Array(bin.length);
+          for (let q = 0; q < bin.length; q++) raw[q] = bin.charCodeAt(q);
+          const zip = typeof CompressionStream !== 'undefined' ? await comprimi(raw) : null;
+          ogg(id.file, [`<</Length ${(zip || raw).length}/Length1 ${raw.length}${zip ? '/Filter/FlateDecode' : ''}>>\nstream\n`, zip || raw, '\nendstream']);
+        }
+      } else {
+        ogg(3, '<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>');
+        ogg(4, '<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>');
+      }
       this.img.forEach((im, i) => {
         ogg(idImg[i], [`<</Type/XObject/Subtype/Image/Width ${im.w}/Height ${im.h}/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/${im.filtro}${im.smask ? '/SMask ' + im.idMask + ' 0 R' : ''}/Length ${im.dati.length}>>\nstream\n`, im.dati, '\nendstream']);
         if (im.smask) ogg(im.idMask, [`<</Type/XObject/Subtype/Image/Width ${im.w}/Height ${im.h}/ColorSpace/DeviceGray/BitsPerComponent 8/Filter/FlateDecode/Length ${im.smask.length}>>\nstream\n`, im.smask, '\nendstream']);
@@ -220,7 +244,7 @@
     doc.nuovaPagina();
     doc.immagine(await doc.aggiungiImmagine(A.template, { qualita: 0.9 }), 0, 0, PW, PH);
     for (const r of cartiglioRuns(v))
-      doc.testo(r.x, r.baseline === 'middle' ? r.y + 0.35 * r.size / MM : r.y, r.t, { size: r.size, allinea: r.align === 'center' ? 'centro' : r.align === 'right' ? 'dx' : null });
+      doc.testo(r.x, r.baseline === 'middle' ? r.y + MEZZO * r.size / MM : r.y, r.t, { size: r.size, allinea: r.align === 'center' ? 'centro' : r.align === 'right' ? 'dx' : null });
     for (const nome of v.livelli || []) {                       // X nelle caselle del livello di progettazione
       const l = A.livelli[nome]; if (!l) continue;
       const cx = l.x * PW, cy = l.y * PH, s = l.s * PH;
