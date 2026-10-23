@@ -73,7 +73,7 @@
   .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;}
   .card h2{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px 14px;}
-  label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--text2);}
+  .f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--text2);}
   input.in,select.in,textarea.in{min-height:var(--tap);width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 11px;font-weight:400;}
   input.in:focus,select.in:focus,textarea.in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent);}
   .unit{display:flex;align-items:center;gap:6px;}
@@ -81,7 +81,7 @@
   textarea.in{min-height:110px;resize:vertical;line-height:1.45;}
   /* nessuna sovrapposizione: i campi non superano mai la loro cella (Safari su iPad da' ai campi data/ora
      una larghezza minima propria e li faceva sbordare sulla cella accanto) */
-  .grid>*,label.f,.unit,.firmabox{min-width:0;}
+  .grid>*,.f,.unit,.firmabox{min-width:0;}
   input.in,select.in,textarea.in{min-width:0;max-width:100%;}
   input.in[type=date],input.in[type=time]{-webkit-appearance:none;appearance:none;display:block;line-height:1.25;text-align:left;}
   input.in[type=date]::-webkit-date-and-time-value,input.in[type=time]::-webkit-date-and-time-value{text-align:left;min-height:1.25em;margin:0;}
@@ -100,6 +100,14 @@
   .seg button.N[aria-pressed=true]{background:var(--ko);}
   .seg button.NA[aria-pressed=true]{background:var(--na);}
   .seg button.o[aria-pressed=true]{background:var(--accent-fill);}
+  /* caselle da spuntare in colonne uguali (scelte multiple con molte voci) */
+  .f.piena{grid-column:1/-1;}
+  .spunte{display:grid;grid-template-columns:repeat(var(--col,3),minmax(0,1fr));gap:8px;}
+  .sp{display:flex;align-items:center;gap:10px;min-height:var(--tap);padding:6px 12px;text-align:left;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);font-weight:600;color:var(--text);cursor:pointer;line-height:1.25;}
+  .sp .bx{flex:none;width:22px;height:22px;border-radius:6px;border:2px solid var(--border);display:grid;place-items:center;font-size:14px;font-weight:800;color:var(--on-accent);}
+  .sp[aria-pressed=true]{border-color:var(--accent);background:var(--sel-bg);}
+  .sp[aria-pressed=true] .bx{background:var(--accent-fill);border-color:var(--accent-fill);}
+  @container (max-width:520px){ .spunte{grid-template-columns:repeat(2,minmax(0,1fr));} }
   .chk{width:var(--tap);height:var(--tap);border-radius:var(--radius);border:2px solid var(--border);background:var(--bg);font-size:22px;font-weight:800;color:var(--on-accent);cursor:pointer;flex:none;}
   .chk[aria-pressed=true]{background:var(--accent-fill);border-color:var(--accent-fill);}
 
@@ -171,7 +179,7 @@
   .cop{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start;}
   .cop canvas{width:100%;aspect-ratio:210/297;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 18px var(--shadow);}
   .cop .rev{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:12px;}
-  .cop .rev label.f{font-size:12px;}
+  .cop .rev .f{font-size:12px;}
   .cop .rev input.in{padding:6px 7px;}
   @container (max-width:760px){ .cop{grid-template-columns:1fr;} .cop canvas{max-width:320px;margin:0 auto;display:block;} .cop .rev{grid-template-columns:repeat(3,minmax(0,1fr));} }
   .tec{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--border);}
@@ -303,6 +311,10 @@ function ctrl(c,p,inTabella){
   // scelte a pulsanti: su una riga se le voci sono brevi (Si/No, AC/A/F/B), altrimenti possono andare a capo
   if(t==='scelta'&&(c.opzioni||[]).length<=4) return `<span class="seg${c.opzioni.join('').length<=30?' nw':''}" role="group">`+c.opzioni.map(o=>`<button type="button" class="o" data-p="${p}" data-v="${esc(o)}" aria-pressed="${v===o}">${esc(o)}</button>`).join('')+`</span>`;
   if(t==='scelta') return `<select class="in" data-p="${p}"><option value=""></option>${c.opzioni.map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  // scelte multiple: poche voci -> pulsanti affiancati; molte voci (es. livello di progettazione) -> caselle da
+  // spuntare in colonne uguali, nell'ordine del modello (per il livello: lo stesso del cartiglio)
+  if(t==='multi'&&c.opzioni.length>4) return `<span class="spunte" role="group" style="--col:${c.colonne||3}">`+c.opzioni.map(o=>{ const on=(v||[]).includes(o);
+    return `<button type="button" class="sp" data-p="${p}" data-m="${esc(o)}" aria-pressed="${on}"><span class="bx">${on?'✓':''}</span>${esc((c.etichette||{})[o]||o)}</button>`; }).join('')+`</span>`;
   if(t==='multi') return `<span class="seg" role="group">`+c.opzioni.map(o=>`<button type="button" class="o" data-p="${p}" data-m="${esc(o)}" aria-pressed="${(v||[]).includes(o)}">${esc(o)}</button>`).join('')+`</span>`;
   if(t==='spunta') return `<button type="button" class="chk" data-p="${p}" data-s aria-pressed="${!!v}" aria-label="Spunta">${v?'✓':''}</button>`;
   // in tabella resta solo l'icona (la parola .ft si nasconde): la colonna firma e' stretta
@@ -313,7 +325,12 @@ function ctrl(c,p,inTabella){
   const sug=c.suggerimenti?` list="dl-${p}"`:'';
   return `<input class="in" data-p="${p}" value="${esc(v||'')}" placeholder="${esc(c.esempio||'')}"${sug}>`+(c.suggerimenti?`<datalist id="dl-${p}">${c.suggerimenti.map(s=>`<option value="${esc(s)}">`).join('')}</datalist>`:'');
 }
-const campo=(c,p)=>`<label class="f">${esc(c.etichetta)}${c.obbligatorio?' *':''}${ctrl(c,p)}</label>`;
+// campi a pulsanti in un div: dentro un <label> il tocco sull'etichetta premerebbe il primo pulsante
+function campo(c,p){
+  const t=c.tipo||'testo', pulsanti=['esito','esitoPN','multi','spunta','firma'].includes(t)||(t==='scelta'&&(c.opzioni||[]).length<=4);
+  const cls='f'+(t==='multi'&&(c.opzioni||[]).length>4?' piena':''), tag=pulsanti?'div':'label';
+  return `<${tag} class="${cls}"${pulsanti?' role="group"':''}>${esc(c.etichetta)}${c.obbligatorio?' *':''}${ctrl(c,p)}</${tag}>`;
+}
 
 // ---- larghezza delle colonne di tabella (px), in base a cosa contengono; 0 = colonna di testo che si allarga ----
 // Nel modello si puo' forzare con "larghezza: <px>" oppure segnare un testo breve con "corto: true" (TAG, INV, stringa...).

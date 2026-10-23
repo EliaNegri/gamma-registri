@@ -195,7 +195,9 @@
       { id: 'codice', etichetta: 'Codice elaborato', tipo: 'testo', predefinito: d.codice || '' },
       { id: 'commessa', etichetta: 'Commessa', tipo: 'testo', esempio: '25-' },
       { id: 'scala', etichetta: 'Scala', tipo: 'testo', predefinito: '-' },
-      { id: 'livelli', etichetta: 'Livello di progettazione', tipo: 'multi', opzioni: A ? Object.keys(A.livelli) : [] },
+      // stesso ordine e disposizione del cartiglio (3 colonne, 2 righe)
+      { id: 'livelli', etichetta: 'Livello di progettazione', tipo: 'multi', colonne: 3, opzioni: A ? Object.keys(A.livelli) : [],
+        etichette: { 'Fattibilita Tecnico Economica': 'Fattibilità tecnico economica', 'Come Realizzato': 'Come realizzato' } },
       { id: 'tecnico', etichetta: 'Tecnico (timbro)', tipo: 'tecnico', da: ['responsabile'] },
     ];
   }
