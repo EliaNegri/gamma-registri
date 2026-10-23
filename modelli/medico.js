@@ -11,7 +11,10 @@
    - blocchi[]: {tipo: 'campi'|'lista'|'tabella'|'note'|'firma', ...}
        campi   : campi[] in griglia
        lista   : righe[] fisse {n, testo, risposta} (risposta = tipo di campo, default 'esito')
-       tabella : colonne[] + righe libere ("+ riga", min = righe iniziali) o righeFisse[]
+       tabella : colonne[] + righe libere ("+ riga", min = righe iniziali) o righeFisse[];
+                 la larghezza delle colonne segue il tipo (numero, data, esito... strette); le colonne di
+                 testo si dividono il resto: "corto: true" per testi brevi (TAG, INV), "largo: true" per
+                 testi lunghi, "larghezza: <px>" per forzarla. Mai scorrimento: se non sta, una scheda per riga.
        note    : testo libero, frasi[] = frasi rapide da inserire con un tocco
        firma   : data, esecutore, firma (con dito o Apple Pencil)
    - tipi di campo: testo, numero (unita), data, ora, scelta (opzioni), multi (opzioni, piu' scelte),
@@ -94,7 +97,7 @@ window.GAMMA_MODELLI.medico = {
       ] },
       blocchi: [
         { tipo: 'tabella', min: 5, colonne: [
-          { id: 'tag', etichetta: 'TAG', tipo: 'testo' },
+          { id: 'tag', etichetta: 'TAG', tipo: 'testo', corto: true },
           { id: 'circuito', etichetta: 'Circuito', tipo: 'testo', largo: true },
           { id: 'classe', etichetta: 'Cl.', tipo: 'scelta', opzioni: ['AC', 'A', 'F', 'B'] },
           { id: 'idn', etichetta: 'Idn', tipo: 'numero', unita: 'A', suggerimenti: ['0,01', '0,03', '0,3', '0,5', '1'] },
@@ -110,7 +113,7 @@ window.GAMMA_MODELLI.medico = {
       breve: 'Tarature protezioni regolabili', periodicita: 'annuale',
       blocchi: [
         { tipo: 'tabella', min: 3, colonne: [
-          { id: 'quadro', etichetta: 'Quadro', tipo: 'testo' },
+          { id: 'quadro', etichetta: 'Quadro', tipo: 'testo', corto: true },
           { id: 'circuito', etichetta: 'Circuito protetto', tipo: 'testo', largo: true },
           { id: 'in', etichetta: 'In', tipo: 'numero', unita: 'A' },
           { id: 'ith', etichetta: 'Ith', tipo: 'numero', unita: 'A' },

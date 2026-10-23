@@ -119,8 +119,8 @@
         ] },
         blocchi: [
           { tipo: 'tabella', min: 6, colonne: [
-            { id: 'inv', etichetta: 'INV', tipo: 'testo' },
-            { id: 'stringa', etichetta: 'Stringa', tipo: 'testo' },
+            { id: 'inv', etichetta: 'INV', tipo: 'testo', corto: true },
+            { id: 'stringa', etichetta: 'Stringa', tipo: 'testo', corto: true },
             { id: 'v', etichetta: 'Valore', tipo: 'numero', unita: 'V' },
             { id: 'i', etichetta: 'Corrente', tipo: 'numero', unita: 'A' },
             { id: 'esito', etichetta: 'Esito', tipo: 'esito' },
@@ -139,8 +139,8 @@
         ] },
         blocchi: [
           { tipo: 'tabella', min: 6, colonne: [
-            { id: 'inv', etichetta: 'INV', tipo: 'testo' },
-            { id: 'stringa', etichetta: 'Stringa', tipo: 'testo', suggerimenti: ['Tutte in parallelo'] },
+            { id: 'inv', etichetta: 'INV', tipo: 'testo', corto: true },
+            { id: 'stringa', etichetta: 'Stringa', tipo: 'testo', corto: true, suggerimenti: ['Tutte in parallelo'] },
             { id: 'r', etichetta: 'Valore', tipo: 'numero', unita: 'MΩ' },
             { id: 'esito', etichetta: 'Esito', tipo: 'esito' },
           ] },

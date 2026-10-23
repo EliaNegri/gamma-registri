@@ -54,7 +54,7 @@
     'L\'impianto di antenna TV risponde alle relative Norme CEI.',
   ];
   const DIFFERENZIALI = { tipo: 'tabella', min: 5, colonne: [
-    { id: 'tag', etichetta: 'TAG', tipo: 'testo' },
+    { id: 'tag', etichetta: 'TAG', tipo: 'testo', corto: true },
     { id: 'circuito', etichetta: 'Circuito', tipo: 'testo', largo: true },
     { id: 'classe', etichetta: 'Cl.', tipo: 'scelta', opzioni: ['AC', 'A', 'F', 'B'] },
     { id: 'idn', etichetta: 'Idn', tipo: 'numero', unita: 'A', suggerimenti: ['0,01', '0,03', '0,3', '0,5', '1'] },
