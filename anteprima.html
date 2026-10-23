@@ -89,6 +89,10 @@
 
   /* esito P / N / NA e scelte a pulsanti */
   .seg{display:inline-flex;flex-wrap:wrap;max-width:100%;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg);flex:none;}
+  /* regola: esiti (P/N/NA, Positivo/Negativo) e scelte brevi restano SEMPRE su una riga;
+     la colonna non puo' stringersi sotto la loro larghezza. Vanno a capo solo le scelte multiple lunghe. */
+  .seg.nw{flex-wrap:nowrap;max-width:none;white-space:nowrap;}
+  .seg.nw button{flex:none;}
   .seg button{min-width:var(--tap);min-height:var(--tap);padding:0 12px;border:none;background:none;font-weight:800;cursor:pointer;color:var(--text2);}
   .seg button+button{border-left:1px solid var(--border);}
   .seg button[aria-pressed=true]{color:#fff;}
@@ -149,6 +153,7 @@
     /* scheda per riga: etichetta fissa a sinistra, il campo prende solo lo spazio che resta */
     table.tb td>*{flex:1 1 0;min-width:0;}
     table.tb td>.seg,table.tb td>.firmabox{flex:0 1 auto;}
+    table.tb td>.seg.nw{flex:none;}
     table.tb td.auto,table.tb td.fisso{white-space:normal;}
   }
   /* firma */
@@ -289,9 +294,10 @@ function ctrl(c,p,inTabella){
   if(t==='tecnico'){ const nomi=tecnici().map(x=>x.nome); if(v&&!nomi.includes(v)) nomi.push(v);
     return `<select class="in" data-p="${p}"><option value="">${esc(c.esempio?'— '+c.esempio+' —':'— nessuno —')}</option>${nomi.map(n=>`<option${v===n?' selected':''}>${esc(n)}</option>`).join('')}</select>`; }
   if(t==='scelta'&&inTabella) return `<select class="in" data-p="${p}" aria-label="${esc(c.etichetta||'')}"><option value=""></option>${c.opzioni.map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
-  if(t==='esito') return `<span class="seg" role="group" aria-label="Esito">`+['P','N','NA'].map(k=>`<button type="button" class="${k}" data-p="${p}" data-v="${k}" aria-pressed="${v===k}" title="${esc(M().esiti[k])}">${k}</button>`).join('')+`</span>`;
-  if(t==='esitoPN') return `<span class="seg" role="group" aria-label="Esito intervento">`+[['P','Positivo'],['N','Negativo']].map(([k,l])=>`<button type="button" class="${k}" data-p="${p}" data-v="${k}" aria-pressed="${v===k}">${l}</button>`).join('')+`</span>`;
-  if(t==='scelta'&&(c.opzioni||[]).length<=4) return `<span class="seg" role="group">`+c.opzioni.map(o=>`<button type="button" class="o" data-p="${p}" data-v="${esc(o)}" aria-pressed="${v===o}">${esc(o)}</button>`).join('')+`</span>`;
+  if(t==='esito') return `<span class="seg nw" role="group" aria-label="Esito">`+['P','N','NA'].map(k=>`<button type="button" class="${k}" data-p="${p}" data-v="${k}" aria-pressed="${v===k}" title="${esc(M().esiti[k])}">${k}</button>`).join('')+`</span>`;
+  if(t==='esitoPN') return `<span class="seg nw" role="group" aria-label="Esito intervento">`+[['P','Positivo'],['N','Negativo']].map(([k,l])=>`<button type="button" class="${k}" data-p="${p}" data-v="${k}" aria-pressed="${v===k}">${l}</button>`).join('')+`</span>`;
+  // scelte a pulsanti: su una riga se le voci sono brevi (Si/No, AC/A/F/B), altrimenti possono andare a capo
+  if(t==='scelta'&&(c.opzioni||[]).length<=4) return `<span class="seg${c.opzioni.join('').length<=30?' nw':''}" role="group">`+c.opzioni.map(o=>`<button type="button" class="o" data-p="${p}" data-v="${esc(o)}" aria-pressed="${v===o}">${esc(o)}</button>`).join('')+`</span>`;
   if(t==='scelta') return `<select class="in" data-p="${p}"><option value=""></option>${c.opzioni.map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
   if(t==='multi') return `<span class="seg" role="group">`+c.opzioni.map(o=>`<button type="button" class="o" data-p="${p}" data-m="${esc(o)}" aria-pressed="${(v||[]).includes(o)}">${esc(o)}</button>`).join('')+`</span>`;
   if(t==='spunta') return `<button type="button" class="chk" data-p="${p}" data-s aria-pressed="${!!v}" aria-label="Spunta">${v?'✓':''}</button>`;
