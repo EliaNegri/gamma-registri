@@ -26,6 +26,7 @@
     titolo: 'Piano di manutenzione impianto fotovoltaico',
     breve: 'Fotovoltaico',
     norma: 'Manuale di gestione e manutenzione FV',
+    documento: { titolo: 'PIANO DI MANUTENZIONE IMPIANTO FOTOVOLTAICO', codice: 'PM01' },   // copertina (cartiglio)
     intestazione: [
       { id: 'struttura', etichetta: 'Committente', tipo: 'testo', obbligatorio: true },
       { id: 'denominazione', etichetta: 'Denominazione impianto / opera', tipo: 'testo' },

@@ -23,6 +23,7 @@ window.GAMMA_MODELLI.medico = {
   titolo: 'Verifiche periodiche ambienti ad uso medico',
   breve: 'Ambienti medici',
   norma: 'CEI 64-8/7 sez. 710',
+  documento: { titolo: 'REGISTRO DELLE VERIFICHE PERIODICHE AMBIENTI AD USO MEDICO', codice: '' },   // copertina (cartiglio)
   intestazione: [
     { id: 'struttura', etichetta: 'Struttura / committente', tipo: 'testo', obbligatorio: true },
     { id: 'oggetto', etichetta: 'Oggetto (impianto)', tipo: 'testo', esempio: 'Impianto FM - LL - varie' },

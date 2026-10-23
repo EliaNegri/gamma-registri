@@ -49,6 +49,11 @@
     return out.length ? out : [''];
   }
   const f = n => (Math.round(n * 100) / 100).toString();
+  // zlib (FlateDecode) con le API del browser: Safari 16.4+, Chrome, Edge
+  async function comprimi(u8) {
+    const s = new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate'));
+    return new Uint8Array(await new Response(s).arrayBuffer());
+  }
 
   // ---- documento ----
   class Doc {
@@ -70,29 +75,46 @@
       if (o.bordo !== false) this.p.push(`${(o.col || [0, 0, 0]).map(f).join(' ')} RG ${f((o.lw || 0.2) * MM)} w ${r} S`);
     }
     immagine(i, x, y, w, h) { this.p.push(`q ${f(w * MM)} 0 0 ${f(h * MM)} ${f(x * MM)} ${f((PH - y - h) * MM)} cm /Im${i} Do Q`); }
-    async aggiungiImmagine(dataUrl) {                 // firma PNG trasparente -> JPEG su fondo bianco
+    // immagine -> JPEG su fondo bianco (firme, logo, sfondo del cartiglio); con alfa:true -> RGB + trasparenza
+    // compressi (timbro sopra il cartiglio, come in KAPPA). maxPx limita la risoluzione.
+    async aggiungiImmagine(dataUrl, o = {}) {
       const im = new Image(); im.src = dataUrl; await im.decode();
-      const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
-      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0);
-      const b64 = c.toDataURL('image/jpeg', 0.85).split(',')[1], bin = atob(b64), u = new Uint8Array(bin.length);
+      const r = Math.min(1, (o.maxPx || 1e5) / Math.max(im.naturalWidth || 1, im.naturalHeight || 1));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round((im.naturalWidth || o.w || 300) * r)); c.height = Math.max(1, Math.round((im.naturalHeight || o.h || 100) * r));
+      const x = c.getContext('2d');
+      if (o.alfa && typeof CompressionStream !== 'undefined') {
+        x.drawImage(im, 0, 0, c.width, c.height);
+        const px = x.getImageData(0, 0, c.width, c.height).data, n = c.width * c.height;
+        const rgb = new Uint8Array(n * 3), a = new Uint8Array(n);
+        for (let k = 0; k < n; k++) { rgb[k * 3] = px[k * 4]; rgb[k * 3 + 1] = px[k * 4 + 1]; rgb[k * 3 + 2] = px[k * 4 + 2]; a[k] = px[k * 4 + 3]; }
+        this.img.push({ w: c.width, h: c.height, dati: await comprimi(rgb), filtro: 'FlateDecode', smask: await comprimi(a) });
+        return this.img.length - 1;
+      }
+      x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+      const b64 = c.toDataURL('image/jpeg', o.qualita || 0.85).split(',')[1], bin = atob(b64), u = new Uint8Array(bin.length);
       for (let k = 0; k < bin.length; k++) u[k] = bin.charCodeAt(k);
-      this.img.push({ w: c.width, h: c.height, dati: u });
+      this.img.push({ w: c.width, h: c.height, dati: u, filtro: 'DCTDecode' });
       return this.img.length - 1;
     }
     blob() {
       const enc = new TextEncoder(), parti = [], off = [];
       let pos = 0; const push = b => { const u = typeof b === 'string' ? enc.encode(b) : b; parti.push(u); pos += u.length; };
-      const np = this.pagine.length, ni = this.img.length;
-      // 1 catalogo, 2 pagine, 3-4 font, poi immagini, poi (pagina, contenuto) per ogni pagina
-      const idImg = i => 5 + i, idPag = i => 5 + ni + i * 2, idCont = i => 6 + ni + i * 2, tot = 4 + ni + np * 2;
+      const np = this.pagine.length;
+      // 1 catalogo, 2 pagine, 3-4 font, poi immagini (+ eventuale maschera di trasparenza), poi (pagina, contenuto)
+      let next = 5;
+      const idImg = this.img.map(im => { const id = next++; if (im.smask) im.idMask = next++; return id; });
+      const base = next, idPag = i => base + i * 2, idCont = i => base + 1 + i * 2, tot = base - 1 + np * 2;
       const ogg = (n, corpo) => { off[n] = pos; push(n + ' 0 obj\n'); for (const c of [].concat(corpo)) push(c); push('\nendobj\n'); };
       push('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n');
       ogg(1, '<</Type/Catalog/Pages 2 0 R>>');
       ogg(2, `<</Type/Pages/Count ${np}/Kids[${this.pagine.map((_, i) => idPag(i) + ' 0 R').join(' ')}]>>`);
       ogg(3, '<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>');
       ogg(4, '<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>');
-      this.img.forEach((im, i) => ogg(idImg(i), [`<</Type/XObject/Subtype/Image/Width ${im.w}/Height ${im.h}/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length ${im.dati.length}>>\nstream\n`, im.dati, '\nendstream']));
-      const xo = ni ? `/XObject<<${this.img.map((_, i) => `/Im${i} ${idImg(i)} 0 R`).join('')}>>` : '';
+      this.img.forEach((im, i) => {
+        ogg(idImg[i], [`<</Type/XObject/Subtype/Image/Width ${im.w}/Height ${im.h}/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/${im.filtro}${im.smask ? '/SMask ' + im.idMask + ' 0 R' : ''}/Length ${im.dati.length}>>\nstream\n`, im.dati, '\nendstream']);
+        if (im.smask) ogg(im.idMask, [`<</Type/XObject/Subtype/Image/Width ${im.w}/Height ${im.h}/ColorSpace/DeviceGray/BitsPerComponent 8/Filter/FlateDecode/Length ${im.smask.length}>>\nstream\n`, im.smask, '\nendstream']);
+      });
+      const xo = this.img.length ? `/XObject<<${this.img.map((_, i) => `/Im${i} ${idImg[i]} 0 R`).join('')}>>` : '';
       this.pagine.forEach((ops, i) => {
         const s = enc.encode(ops.join('\n'));
         ogg(idPag(i), `<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${f(PW * MM)} ${f(PH * MM)}]/Resources<</Font<</F1 3 0 R/F2 4 0 R>>${xo}>>/Contents ${idCont(i)} 0 R>>`);
@@ -135,6 +157,85 @@
     });
   }
 
+  // ---- copertina: il cartiglio dello studio, con la stessa mappa dei campi di KAPPA ----
+  // (cartiglio-assets.js = sfondo + posizioni; i timbri arrivano dai tecnici salvati sul dispositivo)
+  function campiCopertina(m) {
+    const A = window.GAMMA_CARTIGLIO, d = m.documento || {};
+    return [
+      { id: 'committente', etichetta: 'Committente', tipo: 'testo', da: ['struttura'] },
+      { id: 'oggetto', etichetta: 'Oggetto', tipo: 'testo', da: ['oggetto', 'denominazione'] },
+      { id: 'provincia', etichetta: 'Provincia', tipo: 'testo', da: ['provincia'], esempio: 'PROVINCIA DI MANTOVA' },
+      { id: 'comune', etichetta: 'Comune', tipo: 'testo', da: ['comune', 'localita'], esempio: 'Comune di …' },
+      { id: 'disciplina', etichetta: 'Disciplina (titolo grande)', tipo: 'testo', predefinito: 'IMPIANTI ELETTRICI' },
+      { id: 'titolo', etichetta: 'Titolo del documento', tipo: 'testo', predefinito: d.titolo || m.titolo.toUpperCase() },
+      { id: 'codice', etichetta: 'Codice elaborato', tipo: 'testo', predefinito: d.codice || '' },
+      { id: 'commessa', etichetta: 'Commessa', tipo: 'testo', esempio: '25-' },
+      { id: 'scala', etichetta: 'Scala', tipo: 'testo', predefinito: '-' },
+      { id: 'livelli', etichetta: 'Livello di progettazione', tipo: 'multi', opzioni: A ? Object.keys(A.livelli) : [] },
+      { id: 'tecnico', etichetta: 'Tecnico (timbro)', tipo: 'tecnico', da: ['responsabile'] },
+    ];
+  }
+  const CAMPI_REV = [['rev', 'Rev.', '00'], ['descrizione', 'Descrizione', 'EMISSIONE'], ['data', 'Data', ''], ['elaborato', 'Elaborato', ''], ['controllato', 'Controllato', ''], ['approvato', 'Approvato', '']];
+  // valori effettivi della copertina: quello scritto, altrimenti i dati della struttura, altrimenti il predefinito
+  function valoriCopertina(m, valori) {
+    const cop = (valori && valori.cop) || {}, intest = (valori && valori.intest) || {}, rev = cop.rev || {}, out = { rev: {} };
+    for (const c of campiCopertina(m)) {
+      let v = cop[c.id];
+      if (vuoto(v)) v = (c.da || []).map(k => intest[k]).find(x => !vuoto(x)) || c.predefinito || (c.tipo === 'multi' ? [] : '');
+      out[c.id] = v;
+    }
+    for (const [k, , d] of CAMPI_REV) out.rev[k] = vuoto(rev[k]) ? (k === 'data' ? new Date().toLocaleDateString('it-IT') : d) : rev[k];
+    return out;
+  }
+  // testi del cartiglio in mm (posizione, corpo, a capo, riduzione se non stanno): come textRuns() di KAPPA
+  function cartiglioRuns(v) {
+    const A = window.GAMMA_CARTIGLIO; if (!A) return [];
+    const F = A.fields, R = [], pt = s => s * PH * MM;
+    const semplice = (fd, testo, minimo = 1.5) => {
+      if (!fd || vuoto(testo)) return; const t = String(testo).trim(); let s = fd.size;
+      if (fd.boxw) while (larg(t, pt(s)) > fd.boxw * PW && s > minimo / 297) s *= 0.94;
+      R.push({ t, x: fd.x * PW, y: fd.y * PH, size: pt(s), align: fd.align || 'center', baseline: fd.baseline || 'alphabetic' });
+    };
+    const blocco = (fd, testo, maxRighe) => {
+      if (!fd || vuoto(testo)) return;
+      const maxW = (fd.width || 0.6) * PW, maxH = fd.boxh ? fd.boxh * PH : 1e9;
+      let s = fd.size, righe, lh;
+      for (let k = 0; k < 14; k++) {
+        righe = aCapo(testo, pt(s), false, maxW); lh = s * PH * 1.16;
+        if (((!maxRighe || righe.length <= maxRighe) && righe.length * lh <= maxH) || s <= 2.5 / 297) break;
+        s *= 0.92;
+      }
+      const y0 = fd.y * PH - (righe.length - 1) * lh / 2;
+      righe.forEach((l, i) => R.push({ t: l, x: fd.x * PW, y: y0 + i * lh, size: pt(s), align: 'center', baseline: 'middle' }));
+    };
+    semplice(F.provincia, v.provincia); semplice(F.comune, v.comune);
+    blocco(F.committente, v.committente); blocco(F.oggetto, v.oggetto);
+    semplice(F.disciplina, v.disciplina); semplice(F.commessa, v.commessa); semplice(F.scala, v.scala);
+    semplice(F.elaborato, v.codice); blocco(F.tipo_documento, String(v.titolo || '').toUpperCase(), 3);
+    Object.entries(F.revisione || {}).forEach(([k, fd]) => semplice(fd, v.rev[k], 1.2));
+    return R;
+  }
+  async function copertina(doc, m, valori, tecnici) {
+    const A = window.GAMMA_CARTIGLIO, v = valoriCopertina(m, valori);
+    doc.nuovaPagina();
+    doc.immagine(await doc.aggiungiImmagine(A.template, { qualita: 0.9 }), 0, 0, PW, PH);
+    for (const r of cartiglioRuns(v))
+      doc.testo(r.x, r.baseline === 'middle' ? r.y + 0.35 * r.size / MM : r.y, r.t, { size: r.size, allinea: r.align === 'center' ? 'centro' : r.align === 'right' ? 'dx' : null });
+    for (const nome of v.livelli || []) {                       // X nelle caselle del livello di progettazione
+      const l = A.livelli[nome]; if (!l) continue;
+      const cx = l.x * PW, cy = l.y * PH, s = l.s * PH;
+      doc.linea(cx - s, cy - s, cx + s, cy + s, 0.35); doc.linea(cx - s, cy + s, cx + s, cy - s, 0.35);
+    }
+    const t = (tecnici || []).find(x => x.nome === v.tecnico);
+    if (t && t.timbro) {                                        // timbro centrato nel riquadro IL TECNICO
+      const b = A.tecnicoBox, bx = b.x0 * PW, by = b.y0 * PH, bw = (b.x1 - b.x0) * PW, bh = (b.y1 - b.y0) * PH, pad = bw * 0.06;
+      const im = await doc.aggiungiImmagine(t.timbro, { alfa: true, maxPx: 1200 }), ii = doc.img[im];
+      const r = Math.min((bw - 2 * pad) / ii.w, (bh - 2 * pad) / ii.h), w = ii.w * r, h = ii.h * r;
+      doc.immagine(im, bx + (bw - w) / 2, by + (bh - h) / 2, w, h);
+    }
+    return v;
+  }
+
   // ---- impaginazione ----
   async function registro(m, valori, opz = {}) {
     valori = valori || {}; const schedeV = valori.schede || {}, intest = valori.intest || {};
@@ -144,10 +245,15 @@
     const oggi = new Date().toLocaleDateString('it-IT');
     const titoloStruttura = [intest.struttura, intest.comune || intest.localita].filter(Boolean).join(' - ');
     let y = 0, codice = '';
+    // copertina (cartiglio) e logo dello studio, se disponibili
+    const cop = window.GAMMA_CARTIGLIO ? await copertina(doc, m, valori, opz.tecnici) : null;
+    const logo = window.GAMMA_LOGO ? await doc.aggiungiImmagine(window.GAMMA_LOGO, { maxPx: 900, qualita: 0.92 }) : null;
     const testata = () => {
       doc.rett(ML, MT, W, 13, { col: BLU, lw: 0.4 });
-      doc.testo(ML + 3, MT + 5.5, m.titolo, { size: 10, bold: true, col: BLU });
-      doc.testo(ML + 3, MT + 10.3, titoloStruttura || 'Struttura non indicata', { size: 8.5, col: GRIGIO });
+      let xt = ML + 3;
+      if (logo != null) { doc.immagine(logo, ML + 2, MT + 1.6, 33, 9.9); doc.linea(ML + 37, MT + 2, ML + 37, MT + 11, 0.2, GRIGIO); xt = ML + 40; }
+      doc.testo(xt, MT + 5.5, m.titolo, { size: 10, bold: true, col: BLU });
+      doc.testo(xt, MT + 10.3, titoloStruttura || 'Struttura non indicata', { size: 8.5, col: GRIGIO });
       if (codice) doc.testo(PW - MR - 3, MT + 8.5, codice, { size: 14, bold: true, col: BLU, allinea: 'dx' });
       y = MT + 19;
     };
@@ -306,14 +412,16 @@
     riserva = 0;
     // ---- pie' di pagina con numerazione ----
     const n = doc.pagine.length;
+    const rif = cop && cop.codice ? cop.codice + ' - Rev. ' + (cop.rev.rev || '00') + ' del ' + cop.rev.data + '   ·   ' : '';
     doc.pagine.forEach((ops, i) => {
+      if (cop && i === 0) return;                               // la copertina ha gia' il suo cartiglio
       doc.p = ops;
       doc.linea(ML, PH - MB - 4, PW - MR, PH - MB - 4, 0.2, GRIGIO);
-      doc.testo(ML, PH - MB, 'GAMMA - registro generato il ' + oggi, { size: 7, col: GRIGIO });
+      doc.testo(ML, PH - MB, rif + 'Registro generato con GAMMA il ' + oggi, { size: 7, col: GRIGIO });
       doc.testo(PW - MR, PH - MB, 'Pag. ' + (i + 1) + ' di ' + n, { size: 7, col: GRIGIO, allinea: 'dx' });
     });
     return doc.blob();
   }
 
-  window.GammaPDF = { registro, compilata };
+  window.GammaPDF = { registro, compilata, campiCopertina, valoriCopertina, cartiglioRuns, CAMPI_REV };
 })();

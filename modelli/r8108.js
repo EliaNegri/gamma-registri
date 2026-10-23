@@ -70,8 +70,10 @@
     titolo: 'Registro dei controlli periodici (D.Lgs. 81/08 art. 86)',
     breve: 'Registro 81-08',
     norma: 'D.Lgs. 81/08 art. 86 · CEI 64-8 parte 6 · CEI 64-14',
+    documento: { titolo: 'REGISTRO DEI CONTROLLI PERIODICI', codice: 'RT01' },   // copertina (cartiglio)
     intestazione: [
       { id: 'struttura', etichetta: 'Struttura / proprietà', tipo: 'testo', obbligatorio: true },
+      { id: 'oggetto', etichetta: 'Oggetto (impianto)', tipo: 'testo', esempio: 'Impianti elettrici negozio con laboratorio' },
       { id: 'indirizzo', etichetta: 'Indirizzo', tipo: 'testo' },
       { id: 'comune', etichetta: 'Comune', tipo: 'testo' },
       { id: 'provincia', etichetta: 'Provincia', tipo: 'testo' },
