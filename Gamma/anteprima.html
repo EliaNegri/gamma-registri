@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b6178">
+<title>GAMMA — Anteprima modelli</title>
+<style>
+  /* palette della suite (REV1); GAMMA usa l'azzurro (--accent5) come colore proprio.
+     Tema di default "Giornaliero": in cantiere si legge meglio. */
+  :root{
+    --bg:#f6f8fb;--surface:#ffffff;--surface2:#eef1f6;--border:#d6dde8;
+    --accent:#0b6178;--accent-text:#0b6178;--accent-fill:#0b6178;--on-accent:#ffffff;
+    --ok:#04694b;--ko:#c62828;--na:#5f6b7d;
+    --text:#1f2733;--text2:#475569;--text3:#5f6b7d;--sel-bg:#e2f3f7;--shadow:rgba(31,39,51,.14);
+    --ease-out:cubic-bezier(.23,1,.32,1);--dur-fast:120ms;--dur:180ms;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Calibri',Roboto,sans-serif;
+    --radius:10px;--tap:44px;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1117;--surface:#171b26;--surface2:#1e2333;--border:#2a3048;
+    --accent:#22d3ee;--accent-text:#22d3ee;--accent-fill:#0e7490;--on-accent:#ffffff;
+    --ok:#10b981;--ko:#f87171;--na:#8592a8;
+    --text:#e2e8f0;--text2:#94a3b8;--text3:#8592a8;--sel-bg:#13303a;--shadow:rgba(0,0,0,.32);
+  }
+  :root[data-theme="sepia"]{
+    --bg:#e5dabf;--surface:#efe6d0;--surface2:#dccfae;--border:#c7b892;
+    --accent:#0b5c6b;--accent-text:#0b5c6b;--accent-fill:#0b5c6b;--on-accent:#ffffff;
+    --ok:#0c5426;--ko:#a61b1b;--na:#62573f;
+    --text:#2e2818;--text2:#4f4530;--text3:#62573f;--sel-bg:#d6ccad;--shadow:rgba(58,51,32,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15px;display:flex;flex-direction:column;}
+  button,input,select,textarea{font-family:inherit;font-size:inherit;color:var(--text);}
+  header{display:flex;align-items:center;gap:12px;padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;}
+  .brand{display:flex;align-items:baseline;gap:8px;}
+  .brand .k{font-size:28px;font-weight:700;color:var(--accent-text);line-height:1;}
+  .brand .t{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text2);}
+  .hsp{flex:1;}
+  .btn{min-height:var(--tap);display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);font-weight:600;cursor:pointer;transition:transform var(--dur-fast) var(--ease-out),border-color var(--dur-fast) ease;}
+  .btn:active{transform:scale(.97);}
+  .btn.primary{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);}
+  .btn.ghost{background:none;border-color:transparent;color:var(--accent-text);}
+  .btn.danger{background:none;border-color:transparent;color:var(--ko);}
+  .btn.sm{min-height:36px;padding:0 10px;font-size:14px;}
+  select.btn{appearance:none;-webkit-appearance:none;padding-right:28px;background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),linear-gradient(135deg,var(--text2) 50%,transparent 50%);background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat;}
+  .banner{background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--text);padding:8px 16px;font-size:13.5px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+  .banner b{color:var(--accent-text);}
+
+  .wrap{flex:1;display:flex;min-height:0;}
+  nav{width:300px;flex:none;border-right:1px solid var(--border);background:var(--surface);overflow:auto;padding:10px 8px 24px;}
+  .ni{display:flex;width:100%;gap:10px;align-items:flex-start;text-align:left;background:none;border:1px solid transparent;border-radius:var(--radius);padding:10px;cursor:pointer;}
+  .ni.on{background:var(--sel-bg);border-color:color-mix(in srgb,var(--accent) 40%,transparent);}
+  .ni .c{font-weight:800;color:var(--accent-text);min-width:38px;font-variant-numeric:tabular-nums;}
+  .ni .x{flex:1;min-width:0;}
+  .ni .x b{display:block;font-weight:600;line-height:1.3;}
+  .ni .x span{font-size:12.5px;color:var(--text3);}
+  .prog{font-size:12px;font-weight:700;color:var(--text3);white-space:nowrap;}
+  .prog.full{color:var(--ok);}
+  main{flex:1;min-width:0;overflow:auto;padding:18px 20px calc(40px + env(safe-area-inset-bottom));}
+  .foglio{max-width:980px;margin:0 auto;}
+  .ftit{display:flex;gap:12px;align-items:flex-start;margin-bottom:6px;}
+  .ftit .c{font-size:22px;font-weight:800;color:var(--accent-text);}
+  .ftit h1{font-size:19px;line-height:1.3;}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px;}
+  .tag{font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--surface2);color:var(--text2);}
+  .tag.per{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-text);}
+  .desc{color:var(--text2);font-size:14px;margin-bottom:12px;line-height:1.45;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;}
+  .card h2{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px 14px;}
+  label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--text2);}
+  input.in,select.in,textarea.in{min-height:var(--tap);width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 11px;font-weight:400;}
+  input.in:focus,select.in:focus,textarea.in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent);}
+  .unit{display:flex;align-items:center;gap:6px;}
+  .unit span{font-weight:700;color:var(--text3);min-width:18px;}
+  textarea.in{min-height:110px;resize:vertical;line-height:1.45;}
+
+  /* esito P / N / NA e scelte a pulsanti */
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg);flex:none;}
+  .seg button{min-width:var(--tap);min-height:var(--tap);padding:0 12px;border:none;background:none;font-weight:800;cursor:pointer;color:var(--text2);}
+  .seg button+button{border-left:1px solid var(--border);}
+  .seg button[aria-pressed=true]{color:#fff;}
+  .seg button.P[aria-pressed=true]{background:var(--ok);}
+  .seg button.N[aria-pressed=true]{background:var(--ko);}
+  .seg button.NA[aria-pressed=true]{background:var(--na);}
+  .seg button.o[aria-pressed=true]{background:var(--accent-fill);}
+  .chk{width:var(--tap);height:var(--tap);border-radius:var(--radius);border:2px solid var(--border);background:var(--bg);font-size:22px;font-weight:800;color:var(--on-accent);cursor:pointer;flex:none;}
+  .chk[aria-pressed=true]{background:var(--accent-fill);border-color:var(--accent-fill);}
+
+  /* lista di controlli */
+  .li{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--border);}
+  .li:first-of-type{border-top:none;}
+  .li .n{width:28px;flex:none;font-weight:800;color:var(--text3);text-align:right;}
+  .li .t{flex:1;line-height:1.4;}
+  .li .r{flex:none;}
+  .li .r input.in{width:130px;}
+
+  /* tabelle: su iPad una tabella, su iPhone una scheda per riga */
+  .tw{overflow-x:auto;margin:0 -4px;}
+  table.tb{width:100%;border-collapse:collapse;}
+  table.tb th{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);text-align:left;padding:6px 4px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  table.tb td{padding:5px 4px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  table.tb td.auto,table.tb td.fisso{font-weight:800;color:var(--text2);white-space:nowrap;}
+  table.tb input.in,table.tb select.in{min-width:64px;padding:8px;}
+  table.tb td.largo input.in{min-width:160px;}
+  table.tb td.del{width:44px;}
+  table.tb .unit span{display:none;}           /* l'unita' e' gia' nell'intestazione */
+  table.tb .firmabox .btn{white-space:nowrap;}
+  .addrow{margin-top:10px;}
+  /* le tabelle diventano schede quando lo spazio del foglio e' poco (iPad verticale, iPhone, barra laterale aperta) */
+  .foglio{container-type:inline-size;}
+  @container (max-width:700px){
+    table.tb .unit span{display:inline;}
+    table.tb thead{display:none;}
+    table.tb,table.tb tbody,table.tb tr,table.tb td{display:block;width:100%;}
+    table.tb tr{border:1px solid var(--border);border-radius:12px;padding:8px 10px;margin-bottom:10px;background:var(--bg);}
+    table.tb td{border:none;display:flex;align-items:center;gap:10px;padding:5px 0;}
+    table.tb td::before{content:attr(data-l);flex:0 0 96px;font-size:12.5px;font-weight:700;color:var(--text3);}
+    table.tb td.del{width:auto;justify-content:flex-end;}
+    table.tb td.del::before{content:none;}
+    table.tb td.largo input.in,table.tb input.in,table.tb select.in{min-width:0;}
+  }
+  /* firma */
+  .firmabox{display:flex;align-items:center;gap:10px;}
+  .firmabox img{height:var(--tap);max-width:180px;background:#fff;border:1px solid var(--border);border-radius:8px;}
+  .frasi{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .istanze{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+  .istanze .btn.on{background:var(--sel-bg);border-color:var(--accent);color:var(--accent-text);}
+  .legenda{font-size:13px;color:var(--text3);line-height:1.45;margin-top:4px;}
+
+  @media (max-width:560px){
+    .li{flex-wrap:wrap;}
+    .li .t{flex:1 1 calc(100% - 40px);}
+    .li .r{margin-left:40px;}
+    .brand .t,.banner .x{display:none;}
+    header{gap:8px;padding-left:12px;padding-right:12px;}
+  }
+  @media (max-width:900px){
+    .wrap{flex-direction:column;}
+    nav{width:auto;border-right:none;border-bottom:1px solid var(--border);display:flex;gap:6px;overflow-x:auto;padding:8px;}
+    .ni{flex:none;width:auto;padding:8px 12px;align-items:center;}
+    .ni .x span,.ni .x b{display:none;}
+    main{padding:14px 12px 40px;}
+  }
+
+  /* pannello firma: si chiude con Esc o i pulsanti, mai toccando fuori */
+  .pad-ov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px;}
+  .pad-ov.open{display:flex;}
+  .pad{background:var(--surface);border-radius:16px;box-shadow:0 20px 60px var(--shadow);width:min(720px,100%);padding:14px;animation:padIn var(--dur) var(--ease-out);}
+  @keyframes padIn{from{opacity:0;transform:scale(.97);}}
+  .pad h3{font-size:16px;margin-bottom:8px;}
+  .pad canvas{width:100%;height:260px;background:#fff;border:1px dashed var(--border);border-radius:12px;touch-action:none;display:block;}
+  .pad .row{display:flex;gap:8px;margin-top:10px;}
+  .pad .row .hsp{flex:1;}
+  @media (prefers-reduced-motion:reduce){ .btn:active{transform:none;} .pad{animation:none;} }
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="k">Γ</span><span class="t">GAMMA · Registri</span></div>
+  <select class="btn" id="selReg" aria-label="Registro"></select>
+  <span class="hsp"></span>
+  <button class="btn sm" id="btnSvuota">Svuota</button>
+  <button class="btn sm" id="btnTema" title="Cambia sfondo">☀</button>
+</header>
+<div class="banner"><b>Anteprima dei modelli</b><span class="x"> · Controlla schede, campi e diciture: puoi provare a compilare,</span> · i dati non vengono salvati.</div>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <main><div class="foglio" id="foglio"></div></main>
+</div>
+
+<div class="pad-ov" id="padOv" data-esc="chiudiFirma()">
+  <div class="pad" role="dialog" aria-modal="true" aria-labelledby="padT">
+    <h3 id="padT">Firma</h3>
+    <canvas id="padC"></canvas>
+    <div class="row"><button class="btn" id="padClear">Cancella</button><span class="hsp"></span>
+      <button class="btn" onclick="chiudiFirma()">Annulla</button><button class="btn primary" id="padOk">Conferma firma</button></div>
+  </div>
+</div>
+
+<script src="modelli/medico.js"></script>
+<script>
+// =====================================================================================
+// GAMMA - anteprima: disegna i modelli dei registri cosi' come si compileranno sul tablet.
+// I valori stanno solo in memoria (V); il motore di disegno e' quello dell'app vera.
+// =====================================================================================
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MODELLI=window.GAMMA_MODELLI||{};
+const st={reg:Object.keys(MODELLI)[0], scheda:'_intest'};
+let V={};                                   // valori compilati: V[registro] = {intest:{}, schede:{}}
+
+// ---- tema (default chiaro: si legge meglio all'aperto) ----
+const TEMI=['light','dark','sepia'], TICON={light:'☀',dark:'☾',sepia:'📜'};
+function tema(t){ document.documentElement.setAttribute('data-theme',t==='light'?'':t); if(t==='light') document.documentElement.removeAttribute('data-theme');
+  $('btnTema').textContent=TICON[t]; try{localStorage.setItem('gammaTheme',t);}catch(e){} }
+$('btnTema').onclick=()=>{ let c='light'; try{c=localStorage.getItem('gammaTheme')||'light';}catch(e){} tema(TEMI[(TEMI.indexOf(c)+1)%TEMI.length]); };
+try{ tema(localStorage.getItem('gammaTheme')||'light'); }catch(e){ tema('light'); }
+
+// ---- accesso ai valori per percorso "a.b.0.c" ----
+function get(p){ return p.split('.').reduce((o,k)=>o==null?undefined:o[k],V); }
+function set(p,val){ const ks=p.split('.'); let o=V; ks.slice(0,-1).forEach((k,i)=>{ if(o[k]==null) o[k]=/^\d+$/.test(ks[i+1])?[]:{}; o=o[k]; }); o[ks[ks.length-1]]=val; }
+const M=()=>MODELLI[st.reg];
+const R=()=>(V[st.reg]=V[st.reg]||{intest:{},schede:{}});
+function istanze(sc){
+  const S=R().schede[sc.id]=R().schede[sc.id]||{sel:0,ist:[]};
+  if(!S.ist.length) S.ist.push({});
+  return S;
+}
+
+// ---- controlli ----
+function ctrl(c,p,inTabella){
+  const v=get(p), t=c.tipo||'testo';
+  if(t==='scelta'&&inTabella) return `<select class="in" data-p="${p}" aria-label="${esc(c.etichetta||'')}"><option value=""></option>${c.opzioni.map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  if(t==='esito') return `<span class="seg" role="group" aria-label="Esito">`+['P','N','NA'].map(k=>`<button type="button" class="${k}" data-p="${p}" data-v="${k}" aria-pressed="${v===k}" title="${esc(M().esiti[k])}">${k}</button>`).join('')+`</span>`;
+  if(t==='scelta'&&(c.opzioni||[]).length<=4) return `<span class="seg" role="group">`+c.opzioni.map(o=>`<button type="button" class="o" data-p="${p}" data-v="${esc(o)}" aria-pressed="${v===o}">${esc(o)}</button>`).join('')+`</span>`;
+  if(t==='scelta') return `<select class="in" data-p="${p}"><option value=""></option>${c.opzioni.map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  if(t==='multi') return `<span class="seg" role="group">`+c.opzioni.map(o=>`<button type="button" class="o" data-p="${p}" data-m="${esc(o)}" aria-pressed="${(v||[]).includes(o)}">${esc(o)}</button>`).join('')+`</span>`;
+  if(t==='spunta') return `<button type="button" class="chk" data-p="${p}" data-s aria-pressed="${!!v}" aria-label="Spunta">${v?'✓':''}</button>`;
+  if(t==='firma') return `<span class="firmabox">${v?`<img src="${v}" alt="Firma">`:''}<button type="button" class="btn sm" data-firma="${p}">${v?'Rifai':'✍ Firma'}</button></span>`;
+  if(t==='numero') { const sug=c.suggerimenti?` list="dl-${p}"`:''; return `<span class="unit"><input class="in" inputmode="${c.decimali===0?'numeric':'decimal'}" data-p="${p}" value="${esc(v||'')}"${sug}>${c.unita?`<span>${esc(c.unita)}</span>`:''}</span>`+(c.suggerimenti?`<datalist id="dl-${p}">${c.suggerimenti.map(s=>`<option value="${esc(s)}">`).join('')}</datalist>`:''); }
+  if(t==='data') return `<input class="in" type="date" data-p="${p}" value="${esc(v||'')}">`;
+  if(t==='ora') return `<input class="in" type="time" data-p="${p}" value="${esc(v||'')}">`;
+  const sug=c.suggerimenti?` list="dl-${p}"`:'';
+  return `<input class="in" data-p="${p}" value="${esc(v||'')}" placeholder="${esc(c.esempio||'')}"${sug}>`+(c.suggerimenti?`<datalist id="dl-${p}">${c.suggerimenti.map(s=>`<option value="${esc(s)}">`).join('')}</datalist>`:'');
+}
+const campo=(c,p)=>`<label class="f">${esc(c.etichetta)}${c.obbligatorio?' *':''}${ctrl(c,p)}</label>`;
+
+// ---- blocchi ----
+function blocco(b,bi,base){
+  const p=base+'.b.'+bi;
+  if(b.tipo==='campi') return `<div class="card"><div class="grid">${b.campi.map(c=>campo(c,p+'.'+c.id)).join('')}</div></div>`;
+  if(b.tipo==='lista') return `<div class="card"><h2>Controlli</h2>${b.righe.map(r=>`<div class="li"><span class="n">${r.n}</span><span class="t">${esc(r.testo)}</span><span class="r">${ctrl(r.risposta||{tipo:'esito'},p+'.r'+r.n)}</span></div>`).join('')}</div>`;
+  if(b.tipo==='tabella'){
+    const fisse=b.righeFisse;
+    let righe=get(p+'.righe');
+    if(!righe){ righe=fisse?fisse.map(()=>({})):Array.from({length:b.min||1},()=>({})); set(p+'.righe',righe); }
+    const body=righe.map((r,ri)=>`<tr>${b.colonne.map(c=>{
+      const cp=p+'.righe.'+ri+'.'+c.id;
+      if(c.tipo==='auto') return `<td class="auto" data-l="${esc(c.etichetta)}">${ri+1}</td>`;
+      if(c.tipo==='fisso') return `<td class="fisso" data-l="${esc(c.etichetta)}">${esc(fisse[ri])}</td>`;
+      return `<td class="${c.largo?'largo':''}" data-l="${esc(c.etichetta)}">${ctrl(c,cp,true)}</td>`;
+    }).join('')}${fisse?'':`<td class="del"><button type="button" class="btn danger sm" data-delrow="${p}" data-i="${ri}" aria-label="Elimina riga">×</button></td>`}</tr>`).join('');
+    return `<div class="card"><div class="tw"><table class="tb"><thead><tr>${b.colonne.map(c=>`<th>${esc(c.etichetta)}${c.unita?' ('+esc(c.unita)+')':''}</th>`).join('')}${fisse?'':'<th></th>'}</tr></thead><tbody>${body}</tbody></table></div>`
+      +(fisse?'':`<button type="button" class="btn addrow" data-addrow="${p}">+ Aggiungi riga</button>`)+`</div>`;
+  }
+  if(b.tipo==='note') return `<div class="card"><h2>Note</h2>${b.frasi?`<div class="frasi">${b.frasi.map(f=>`<button type="button" class="btn sm" data-frase="${p}" data-v="${esc(f)}">+ ${esc(f)}</button>`).join('')}</div>`:''}<textarea class="in" data-p="${p}">${esc(get(p)||'')}</textarea></div>`;
+  if(b.tipo==='firma'){
+    if(get(p+'.data')==null) set(p+'.data',new Date().toISOString().slice(0,10));
+    return `<div class="card"><h2>Esecuzione</h2><div class="grid">${campo({etichetta:'Data',tipo:'data'},p+'.data')}${campo({etichetta:'Esecutore',tipo:'testo'},p+'.esecutore')}<label class="f">Firma${ctrl({tipo:'firma'},p+'.firma')}</label></div></div>`;
+  }
+  return '';
+}
+
+// ---- avanzamento: controlli della lista, esiti nelle righe usate, firma ----
+function avanzamento(sc){
+  const S=R().schede[sc.id]; if(!S) return null;
+  let tot=0, fatti=0;
+  S.ist.forEach((I,ii)=>sc.blocchi.forEach((b,bi)=>{
+    const bv=(I.b||{})[bi]||{};
+    if(b.tipo==='lista') b.righe.forEach(r=>{ tot++; const x=bv['r'+r.n]; if(x!=null&&x!==''&&x!==false) fatti++; });
+    if(b.tipo==='firma'){ tot++; if(bv.firma) fatti++; }
+    if(b.tipo==='tabella'&&b.colonne.some(c=>c.tipo==='esito')) (bv.righe||[]).forEach(r=>{
+      const usata=Object.entries(r).some(([k,x])=>k!=='esito'&&x); if(usata||r.esito){ tot++; if(r.esito) fatti++; } });
+  }));
+  return tot?{fatti,tot}:null;
+}
+
+// ---- disegno ----
+function render(){
+  const m=M();
+  $('selReg').innerHTML=Object.values(MODELLI).map(x=>`<option value="${x.id}"${x.id===st.reg?' selected':''}>${esc(x.breve||x.titolo)}</option>`).join('');
+  const voci=[{id:'_intest',codice:'—',breve:'Struttura',titolo:'Dati della struttura'}].concat(m.schede);
+  $('nav').innerHTML=voci.map(sc=>{ const a=sc.id==='_intest'?null:avanzamento(sc);
+    return `<button class="ni${st.scheda===sc.id?' on':''}" data-sc="${sc.id}"><span class="c">${esc(sc.codice)}</span><span class="x"><b>${esc(sc.breve||sc.titolo)}</b>${sc.periodicita?`<span>${esc(sc.periodicita)}</span>`:''}</span>${a?`<span class="prog${a.fatti===a.tot?' full':''}">${a.fatti}/${a.tot}</span>`:''}</button>`; }).join('');
+  let h='';
+  if(st.scheda==='_intest'){
+    h=`<div class="ftit"><span class="c">Γ</span><h1>${esc(m.titolo)}</h1></div><div class="meta"><span class="tag per">${esc(m.norma)}</span></div>
+      <p class="desc">Dati della struttura: si compilano una volta e compaiono nell'intestazione di tutte le schede.</p>
+      <div class="card"><div class="grid">${m.intestazione.map(c=>campo(c,st.reg+'.intest.'+c.id)).join('')}</div></div>`;
+  }else{
+    const sc=m.schede.find(s=>s.id===st.scheda), S=istanze(sc), base=st.reg+'.schede.'+sc.id+'.ist.'+S.sel;
+    h=`<div class="ftit"><span class="c">${esc(sc.codice)}</span><h1>${esc(sc.titolo)}</h1></div>
+      <div class="meta">${sc.periodicita?`<span class="tag per">Periodicità: ${esc(sc.periodicita)}</span>`:''}<span class="tag">${esc(m.norma)}</span></div>
+      ${sc.descrizione?`<p class="desc">${esc(sc.descrizione)}</p>`:''}`;
+    if(sc.ripeti){
+      const nome=(I,i)=>{ const c0=sc.ripeti.campi[0]; const x=I&&I.id&&I.id[c0.id]; return x||(sc.ripeti.etichetta+' '+(i+1)); };
+      h+=`<div class="istanze">${S.ist.map((I,i)=>`<button class="btn sm${i===S.sel?' on':''}" data-ist="${i}">${esc(nome(I,i))}</button>`).join('')}
+        <button class="btn sm ghost" data-addist>+ ${esc(sc.ripeti.etichetta)}</button>${S.ist.length>1?`<button class="btn sm danger" data-delist>Elimina questo</button>`:''}</div>
+        <div class="card"><h2>${esc(sc.ripeti.etichetta)}</h2><div class="grid">${sc.ripeti.campi.map(c=>campo(c,base+'.id.'+c.id)).join('')}</div></div>`;
+    }
+    h+=sc.blocchi.map((b,bi)=>blocco(b,bi,base)).join('');
+    h+=`<p class="legenda">* P = Positivo · N = Negativo · NA = Non applicabile.${sc.legenda?'<br>'+esc(sc.legenda):''}</p>`;
+  }
+  $('foglio').innerHTML=h;
+}
+const renderNav=()=>{ const y=$('foglio').parentElement.scrollTop; render(); $('foglio').parentElement.scrollTop=y; };
+
+// ---- eventi (delegati) ----
+$('nav').onclick=e=>{ const b=e.target.closest('[data-sc]'); if(!b) return; st.scheda=b.dataset.sc; render(); $('foglio').parentElement.scrollTop=0; };
+$('selReg').onchange=e=>{ st.reg=e.target.value; st.scheda='_intest'; render(); };
+$('btnSvuota').onclick=()=>{ if(confirm('Svuotare tutte le prove di compilazione?')){ V={}; render(); } };
+$('foglio').addEventListener('input',e=>{ const p=e.target.dataset.p; if(!p) return; set(p,e.target.value); if(e.target.tagName==='SELECT') renderNav(); else{ const s=$('nav').querySelector('.ni.on .prog'); if(s) renderNavSolo(); } });
+function renderNavSolo(){ const sc=M().schede.find(s=>s.id===st.scheda); if(!sc) return; const a=avanzamento(sc), el=$('nav').querySelector('.ni.on .prog'); if(el&&a){ el.textContent=a.fatti+'/'+a.tot; el.classList.toggle('full',a.fatti===a.tot); } }
+$('foglio').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const p=b.dataset.p;
+  if(p&&b.dataset.v!=null&&!b.dataset.frase){ set(p,get(p)===b.dataset.v?'':b.dataset.v); renderNav(); return; }          // esito/scelta: ritocco = annulla
+  if(p&&b.dataset.m!=null){ const a=(get(p)||[]).slice(), i=a.indexOf(b.dataset.m); i<0?a.push(b.dataset.m):a.splice(i,1); set(p,a); renderNav(); return; }
+  if(p&&b.hasAttribute('data-s')){ set(p,!get(p)); renderNav(); return; }
+  if(b.dataset.addrow){ const rr=get(b.dataset.addrow+'.righe'); rr.push({}); renderNav(); return; }
+  if(b.dataset.delrow){ const rr=get(b.dataset.delrow+'.righe'), i=+b.dataset.i; const r=rr[i];
+    if(Object.values(r).some(x=>x)&&!confirm('Eliminare la riga compilata?')) return; rr.splice(i,1); renderNav(); return; }
+  if(b.dataset.frase){ const t=get(b.dataset.frase)||''; set(b.dataset.frase,(t?t.replace(/\s*$/,'')+'\n':'')+b.dataset.v); renderNav(); return; }
+  if(b.dataset.firma){ apriFirma(b.dataset.firma); return; }
+  const sc=M().schede.find(s=>s.id===st.scheda);
+  if(b.dataset.ist!=null){ istanze(sc).sel=+b.dataset.ist; render(); return; }
+  if(b.hasAttribute('data-addist')){ const S=istanze(sc); S.ist.push({}); S.sel=S.ist.length-1; render(); return; }
+  if(b.hasAttribute('data-delist')){ const S=istanze(sc); if(!confirm('Eliminare questo '+sc.ripeti.etichetta.toLowerCase()+' e i suoi dati?')) return; S.ist.splice(S.sel,1); S.sel=Math.max(0,S.sel-1); render(); }
+});
+
+// ---- firma con dito o Apple Pencil (pressione = spessore) ----
+const pad={p:null,ctx:null,vuota:true};
+function apriFirma(p){
+  pad.p=p; $('padOv').classList.add('open');
+  const c=$('padC'), r=c.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  c.width=r.width*dpr; c.height=r.height*dpr; pad.ctx=c.getContext('2d'); pad.ctx.scale(dpr,dpr);
+  pad.ctx.lineCap='round'; pad.ctx.lineJoin='round'; pad.ctx.strokeStyle='#14213d'; pad.vuota=true;
+}
+function chiudiFirma(){ $('padOv').classList.remove('open'); pad.p=null; }
+(function(){
+  const c=$('padC'); let giu=false, last=null;
+  const pt=e=>{ const r=c.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top,w:e.pointerType==='pen'?1+3*(e.pressure||.5):2.4}; };
+  c.addEventListener('pointerdown',e=>{ e.preventDefault(); c.setPointerCapture(e.pointerId); giu=true; last=pt(e); });
+  c.addEventListener('pointermove',e=>{ if(!giu) return; const q=pt(e), x=pad.ctx; x.lineWidth=q.w; x.beginPath(); x.moveTo(last.x,last.y); x.lineTo(q.x,q.y); x.stroke(); last=q; pad.vuota=false; });
+  ['pointerup','pointercancel'].forEach(t=>c.addEventListener(t,()=>{ giu=false; }));
+  $('padClear').onclick=()=>{ pad.ctx.clearRect(0,0,c.width,c.height); pad.vuota=true; };
+  $('padOk').onclick=()=>{ if(pad.p) set(pad.p,pad.vuota?'':c.toDataURL('image/png')); chiudiFirma(); renderNav(); };
+})();
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('padOv').classList.contains('open')) chiudiFirma(); });
+
+render();
+</script>
+</body>
+</html>
