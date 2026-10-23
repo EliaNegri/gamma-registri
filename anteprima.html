@@ -79,6 +79,13 @@
   .unit{display:flex;align-items:center;gap:6px;}
   .unit span{font-weight:700;color:var(--text3);min-width:18px;}
   textarea.in{min-height:110px;resize:vertical;line-height:1.45;}
+  /* nessuna sovrapposizione: i campi non superano mai la loro cella (Safari su iPad da' ai campi data/ora
+     una larghezza minima propria e li faceva sbordare sulla cella accanto) */
+  .grid>*,label.f,.unit,.firmabox{min-width:0;}
+  input.in,select.in,textarea.in{min-width:0;max-width:100%;}
+  input.in[type=date],input.in[type=time]{-webkit-appearance:none;appearance:none;display:block;line-height:1.25;text-align:left;}
+  input.in[type=date]::-webkit-date-and-time-value,input.in[type=time]::-webkit-date-and-time-value{text-align:left;min-height:1.25em;margin:0;}
+  .unit input.in{flex:1 1 auto;width:auto;}
 
   /* esito P / N / NA e scelte a pulsanti */
   .seg{display:inline-flex;flex-wrap:wrap;max-width:100%;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg);flex:none;}
@@ -105,10 +112,10 @@
   .li .xs{flex:1 1 100%;display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center;margin-left:40px;}
   .li .xc{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--text3);}
   .li .xc input.in{width:64px;min-height:38px;padding:6px 8px;}
-  .li .xc input.in:not([inputmode]){width:160px;}        /* data, testo (es. addetto) */
+  .li .xc input.in:not([inputmode]){width:160px;flex:none;}   /* data, testo (es. addetto) */
   .li .xc select.in{width:210px;min-height:38px;padding:6px 8px;}
   .li .xc:last-child{flex:1;min-width:200px;}
-  .li .xc:last-child input.in{width:100%;}
+  .li .xc:last-child input.in{flex:1 1 0;width:auto;min-width:0;}   /* etichetta + campo nello spazio che resta */
   .vk{display:inline-block;min-width:64px;text-align:center;padding:10px 12px;border-radius:var(--radius);font-weight:800;background:var(--surface2);color:var(--text3);}
   .vk.ok{background:var(--ok);color:#fff;}
   .vk.ko{background:var(--ko);color:#fff;}
@@ -120,6 +127,8 @@
   table.tb td{padding:5px 4px;border-bottom:1px solid var(--border);vertical-align:middle;}
   table.tb td.auto,table.tb td.fisso{font-weight:800;color:var(--text2);white-space:nowrap;}
   table.tb input.in,table.tb select.in{min-width:64px;padding:8px;}
+  table.tb input.in[type=date]{min-width:136px;}            /* larghezze fisse: la tabella scorre invece di sovrapporsi */
+  table.tb input.in[type=time]{min-width:96px;}
   table.tb td.largo input.in{min-width:160px;}
   table.tb td.del{width:44px;}
   table.tb .unit span{display:none;}           /* l'unita' e' gia' nell'intestazione */
@@ -137,6 +146,10 @@
     table.tb td.del{width:auto;justify-content:flex-end;}
     table.tb td.del::before{content:none;}
     table.tb td.largo input.in,table.tb input.in,table.tb select.in{min-width:0;}
+    /* scheda per riga: etichetta fissa a sinistra, il campo prende solo lo spazio che resta */
+    table.tb td>*{flex:1 1 0;min-width:0;}
+    table.tb td>.seg,table.tb td>.firmabox{flex:0 1 auto;}
+    table.tb td.auto,table.tb td.fisso{white-space:normal;}
   }
   /* firma */
   .firmabox{display:flex;align-items:center;gap:10px;}
