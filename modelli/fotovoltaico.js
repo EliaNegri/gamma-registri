@@ -9,7 +9,7 @@
 (function(){
   const TIPI_MANUTENZIONE = ['A - ordinaria', 'B - straordinaria', 'C - preventiva', 'D - preventiva programmata',
     'E - preventiva non programmata', 'F - preventiva predittiva', 'G - secondo condizione', 'H - controllata',
-    'I - correttiva', 'L - migliorativa'];
+    'I - correttiva', 'J - migliorativa'];
   const COLONNE_ATTIVITA = [
     { id: 'per', etichetta: 'Periodicità', tipo: 'numero', unita: 'mesi', decimali: 0, predefinito: 'per' },
     { id: 'tipo', etichetta: 'Tipo', tipo: 'scelta', opzioni: TIPI_MANUTENZIONE },

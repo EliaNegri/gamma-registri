@@ -8,9 +8,8 @@ all'Officina PrezzarioMega (card Γ nel menu, archivio nella cartella condivisa)
 
 | Fase | Contenuto | Stato |
 |---|---|---|
-| 1 | Modelli dei registri + pagina di anteprima | registri **medico** e **fotovoltaico** fatti (`modelli/`, `anteprima.html`) |
-| 2 | Prototipo: strutture, visite, salvataggio sul dispositivo, PDF e Word | da fare |
-| 3 | Modelli 81-08 (RT01, VP01–VP04, SMNT01–08) | da fare |
+| 1 | Modelli dei registri + pagina di anteprima | registri **medico**, **fotovoltaico** e **81-08** fatti (`modelli/`, `anteprima.html`) |
+| 2 | Prototipo: strutture, visite, salvataggio sul dispositivo, PDF e Word | **PDF** fatto (`gamma-pdf.js`, pulsante PDF nell'anteprima); il resto da fare |
 | 4 | Integrazione nella suite e archivio condiviso | da fare |
 | 5 | Sincronizzazione automatica Microsoft 365 (SharePoint) | da valutare |
 

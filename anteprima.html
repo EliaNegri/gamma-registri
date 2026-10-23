@@ -102,6 +102,7 @@
   .li .xs{flex:1 1 100%;display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center;margin-left:40px;}
   .li .xc{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--text3);}
   .li .xc input.in{width:64px;min-height:38px;padding:6px 8px;}
+  .li .xc input.in:not([inputmode]){width:160px;}        /* data, testo (es. addetto) */
   .li .xc select.in{width:210px;min-height:38px;padding:6px 8px;}
   .li .xc:last-child{flex:1;min-width:200px;}
   .li .xc:last-child input.in{width:100%;}
@@ -175,13 +176,27 @@
   <div class="brand"><span class="k">Γ</span><span class="t">GAMMA · Registri</span></div>
   <select class="btn" id="selReg" aria-label="Registro"></select>
   <span class="hsp"></span>
+  <button class="btn sm primary" id="btnPdf" title="Scarica il registro in PDF">PDF</button>
   <button class="btn sm" id="btnSvuota">Svuota</button>
   <button class="btn sm" id="btnTema" title="Cambia sfondo">☀</button>
 </header>
-<div class="banner"><b>Anteprima dei modelli</b><span class="x"> · Controlla schede, campi e diciture: puoi provare a compilare,</span> · i dati non vengono salvati.</div>
+<div class="banner"><b>Anteprima dei modelli</b><span class="x"> · Controlla schede, campi e diciture: puoi provare a compilare,</span> · i dati non vengono salvati, ma puoi scaricare il PDF.</div>
 <div class="wrap">
   <nav id="nav"></nav>
   <main><div class="foglio" id="foglio"></div></main>
+</div>
+
+<div class="pad-ov" id="pdfOv" data-esc="chiudiPdf()">
+  <div class="pad" role="dialog" aria-modal="true" aria-labelledby="pdfT" style="width:min(460px,100%)">
+    <h3 id="pdfT">Scarica il PDF</h3>
+    <p class="desc" id="pdfInfo" style="margin:4px 0 12px"></p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn primary" data-pdf="compilate">Solo le schede compilate</button>
+      <button class="btn" data-pdf="questa" id="pdfQuesta">Solo questa scheda</button>
+      <button class="btn" data-pdf="tutte">Tutto il registro (anche da compilare a mano)</button>
+    </div>
+    <div class="row"><span class="hsp"></span><button class="btn" onclick="chiudiPdf()">Chiudi</button></div>
+  </div>
 </div>
 
 <div class="pad-ov" id="padOv" data-esc="chiudiFirma()">
@@ -195,6 +210,8 @@
 
 <script src="modelli/medico.js"></script>
 <script src="modelli/fotovoltaico.js"></script>
+<script src="modelli/r8108.js"></script>
+<script src="gamma-pdf.js"></script>
 <script>
 // =====================================================================================
 // GAMMA - anteprima: disegna i modelli dei registri cosi' come si compileranno sul tablet.
@@ -256,7 +273,7 @@ function blocco(b,bi,base){
         if(get(cp)===undefined&&c.predefinito&&r[c.predefinito]!=null) set(cp,String(r[c.predefinito]));
         return `<label class="xc">${esc(c.etichetta)}${ctrl(c,cp,true)}</label>`; }).join('');
       return `<div class="li${cols.length?' ext':''}"><span class="n">${n}</span><span class="t">${esc(r.testo)}${r.nota?`<small>${esc(r.nota)}</small>`:''}</span>`
-        +`<span class="r">${ctrl(r.risposta||{tipo:'esito'},rp)}</span>${extra?`<span class="xs">${extra}</span>`:''}</div>`;
+        +(r.risposta===false?'':`<span class="r">${ctrl(r.risposta||{tipo:'esito'},rp)}</span>`)+`${extra?`<span class="xs">${extra}</span>`:''}</div>`;
     }).join('')}</div>`;
   }
   if(b.tipo==='verifiche') return `<div class="card"><h2>${esc(b.titolo||'Verifiche')}</h2>${b.righe.map((r,ri)=>
@@ -271,7 +288,7 @@ function blocco(b,bi,base){
       if(c.tipo==='fisso') return `<td class="fisso" data-l="${esc(c.etichetta)}">${esc(fisse[ri])}</td>`;
       return `<td class="${c.largo?'largo':''}" data-l="${esc(c.etichetta)}">${ctrl(c,cp,true)}</td>`;
     }).join('')}${fisse?'':`<td class="del"><button type="button" class="btn danger sm" data-delrow="${p}" data-i="${ri}" aria-label="Elimina riga">×</button></td>`}</tr>`).join('');
-    return `<div class="card"><div class="tw"><table class="tb"><thead><tr>${b.colonne.map(c=>`<th>${esc(c.etichetta)}${c.unita?' ('+esc(c.unita)+')':''}</th>`).join('')}${fisse?'':'<th></th>'}</tr></thead><tbody>${body}</tbody></table></div>`
+    return `<div class="card">${b.titolo?`<h2>${esc(b.titolo)}</h2>`:''}<div class="tw"><table class="tb"><thead><tr>${b.colonne.map(c=>`<th>${esc(c.etichetta)}${c.unita?' ('+esc(c.unita)+')':''}</th>`).join('')}${fisse?'':'<th></th>'}</tr></thead><tbody>${body}</tbody></table></div>`
       +(fisse?'':`<button type="button" class="btn addrow" data-addrow="${p}">+ Aggiungi riga</button>`)+`</div>`;
   }
   if(b.tipo==='note') return `<div class="card"><h2>Note</h2>${b.frasi?`<div class="frasi">${b.frasi.map(f=>`<button type="button" class="btn sm" data-frase="${p}" data-v="${esc(f)}">+ ${esc(f)}</button>`).join('')}</div>`:''}<textarea class="in" data-p="${p}">${esc(get(p)||'')}</textarea></div>`;
@@ -288,7 +305,8 @@ function avanzamento(sc){
   let tot=0, fatti=0;
   S.ist.forEach((I,ii)=>sc.blocchi.forEach((b,bi)=>{
     const bv=(I.b||{})[bi]||{};
-    if(b.tipo==='lista') b.righe.forEach((r,ri)=>{ tot++; const x=bv['r'+(r.n!=null?r.n:ri+1)]; if(x!=null&&x!==''&&x!==false) fatti++; });
+    // attivita' senza esito (es. cabine): conta come fatta quando ha la data di esecuzione
+    if(b.tipo==='lista') b.righe.forEach((r,ri)=>{ tot++; const k='r'+(r.n!=null?r.n:ri+1), x=r.risposta===false?bv[k+'_data']:bv[k]; if(x!=null&&x!==''&&x!==false) fatti++; });
     if(b.tipo==='firma'){ tot++; if(bv.firma) fatti++; }
     if(b.tipo==='tabella'&&b.colonne.some(c=>c.tipo==='esito')) (bv.righe||[]).forEach(r=>{
       const usata=Object.entries(r).some(([k,x])=>k!=='esito'&&x); if(usata||r.esito){ tot++; if(r.esito) fatti++; } });
@@ -300,9 +318,6 @@ function avanzamento(sc){
 function render(){
   const m=M();
   $('selReg').innerHTML=Object.values(MODELLI).map(x=>`<option value="${x.id}"${x.id===st.reg?' selected':''}>${esc(x.breve||x.titolo)}</option>`).join('');
-  const voci=[{id:'_intest',codice:'—',breve:'Struttura',titolo:'Dati della struttura'}].concat(m.schede);
-  $('nav').innerHTML=voci.map(sc=>{ const a=sc.id==='_intest'?null:avanzamento(sc);
-    return `<button class="ni${st.scheda===sc.id?' on':''}" data-sc="${sc.id}"><span class="c">${esc(sc.codice)}</span><span class="x"><b>${esc(sc.breve||sc.titolo)}</b>${sc.periodicita?`<span>${esc(sc.periodicita)}</span>`:''}</span>${a?`<span class="prog${a.fatti===a.tot?' full':''}">${a.fatti}/${a.tot}</span>`:''}</button>`; }).join('');
   let h='';
   if(st.scheda==='_intest'){
     h=`<div class="ftit"><span class="c">Γ</span><h1>${esc(m.titolo)}</h1></div><div class="meta"><span class="tag per">${esc(m.norma)}</span></div>
@@ -320,12 +335,16 @@ function render(){
         <div class="card"><h2>${esc(sc.ripeti.etichetta)}</h2><div class="grid">${sc.ripeti.campi.map(c=>campo(c,base+'.id.'+c.id)).join('')}</div></div>`;
     }
     h+=sc.blocchi.map((b,bi)=>blocco(b,bi,base)).join('');
-    const usaPNNA=sc.blocchi.some(b=>(b.tipo==='tabella'&&b.colonne.some(c=>c.tipo==='esito'))||(b.tipo==='lista'&&b.righe.some(r=>!r.risposta||r.risposta.tipo==='esito')));
-    const usaTipi=sc.blocchi.some(b=>b.tipo==='lista'&&(b.colonne||[]).some(c=>c.id==='tipo'));
+    const usaPNNA=sc.blocchi.some(b=>(b.tipo==='tabella'&&b.colonne.some(c=>c.tipo==='esito'))||(b.tipo==='lista'&&b.esito!==false&&b.righe.some(r=>!r.risposta||r.risposta.tipo==='esito')));
+    const usaTipi=sc.blocchi.some(b=>(b.colonne||[]).some(c=>c.id==='tipo'));
     const leg=[usaPNNA?'* P = Positivo · N = Negativo · NA = Non applicabile.':'', usaTipi?m.legendaTipi:'', sc.legenda||''].filter(Boolean);
     if(leg.length) h+=`<p class="legenda">${leg.map(esc).join('<br>')}</p>`;
   }
   $('foglio').innerHTML=h;
+  // menu dopo il foglio: la scheda appena aperta ha gia' i suoi dati iniziali e mostra l'avanzamento
+  const voci=[{id:'_intest',codice:'—',breve:'Struttura',titolo:'Dati della struttura'}].concat(m.schede);
+  $('nav').innerHTML=voci.map(sc=>{ const a=sc.id==='_intest'?null:avanzamento(sc);
+    return `<button class="ni${st.scheda===sc.id?' on':''}" data-sc="${sc.id}"><span class="c">${esc(sc.codice)}</span><span class="x"><b>${esc(sc.breve||sc.titolo)}</b>${sc.periodicita?`<span>${esc(sc.periodicita)}</span>`:''}</span>${a?`<span class="prog${a.fatti===a.tot?' full':''}">${a.fatti}/${a.tot}</span>`:''}</button>`; }).join('');
   aggiornaCalcoli();
 }
 // controlli calcolati (blocco 'verifiche'): usano i campi della scheda corrente
@@ -383,7 +402,30 @@ function chiudiFirma(){ $('padOv').classList.remove('open'); pad.p=null; }
   $('padClear').onclick=()=>{ pad.ctx.clearRect(0,0,c.width,c.height); pad.vuota=true; };
   $('padOk').onclick=()=>{ if(pad.p) set(pad.p,pad.vuota?'':c.toDataURL('image/png')); chiudiFirma(); renderNav(); };
 })();
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('padOv').classList.contains('open')) chiudiFirma(); });
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; if($('padOv').classList.contains('open')) chiudiFirma(); else if($('pdfOv').classList.contains('open')) chiudiPdf(); });
+
+// ---- PDF ----
+function apriPdf(){
+  const m=M(), sc=m.schede.find(s=>s.id===st.scheda), n=m.schede.filter(s=>GammaPDF.compilata(s,R().schede[s.id])).length;
+  $('pdfInfo').textContent=m.titolo+' · '+n+' schede compilate su '+m.schede.length;
+  $('pdfQuesta').hidden=!sc; if(sc) $('pdfQuesta').textContent='Solo questa scheda ('+sc.codice+')';
+  $('pdfOv').classList.add('open');
+}
+function chiudiPdf(){ $('pdfOv').classList.remove('open'); }
+$('btnPdf').onclick=apriPdf;
+$('pdfOv').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-pdf]'); if(!b) return;
+  const m=M(), scelta=b.dataset.pdf==='questa'?[st.scheda]:b.dataset.pdf;
+  b.disabled=true; const t=b.textContent; b.textContent='Preparo il PDF…';
+  try{
+    const blob=await GammaPDF.registro(m,R(),{schede:scelta});
+    const nome=['GAMMA',m.breve,(R().intest||{}).struttura,new Date().toISOString().slice(0,10)].filter(Boolean).join(' - ').replace(/[\\/:*?"<>|]+/g,'_')+'.pdf';
+    const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=nome; document.body.append(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },4000);
+    chiudiPdf();
+  }catch(err){ alert('PDF non riuscito: '+err.message); }
+  finally{ b.disabled=false; b.textContent=t; }
+});
 
 render();
 </script>
