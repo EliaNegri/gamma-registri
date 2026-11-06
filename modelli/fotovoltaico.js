@@ -49,7 +49,7 @@
         blocchi: [
           { tipo: 'tabella', min: 3, colonne: [
             { id: 'nr', etichetta: 'Scheda n°', tipo: 'auto' },
-            { id: 'tecnico', etichetta: 'Operatore', tipo: 'testo' },
+            { id: 'tecnico', etichetta: 'Operatore', tipo: 'testo', utente: true },
             { id: 'data', etichetta: 'Data', tipo: 'data' },
             { id: 'tipo', etichetta: 'Intervento', tipo: 'testo', suggerimenti: ['Manutenzione ordinaria', 'Manutenzione straordinaria', 'Verifica'] },
           ] },

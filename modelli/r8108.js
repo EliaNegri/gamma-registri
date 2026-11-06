@@ -3,7 +3,8 @@
    personale, verifiche iniziali), allegati VP01a-VP04 (verifiche periodiche) e schede
    manutentive SMNT01-SMNT08. Formato dei modelli: vedi modelli/medico.js e fotovoltaico.js.
    In piu' qui: lista con esito:false = attivita' senza P/N/NA (cabine: data, addetto, firma,
-   provvedimenti per ogni riga). Righe doppie dei Word (SMNT04, QMT) tenute una volta sola. */
+   provvedimenti per ogni riga). Righe doppie dei Word (SMNT04, QMT) tenute una volta sola.
+   VP01a e VP01b sono "collegate": stessi quadri e stessi differenziali (colonne "comune"). */
 (function(){
   const TIPI = ['A - ordinaria', 'B - straordinaria', 'C - preventiva', 'D - preventiva programmata',
     'E - preventiva non programmata', 'F - preventiva predittiva', 'G - secondo condizione', 'H - controllata',
@@ -12,7 +13,7 @@
   // attivita' delle cabine (scheda SMNT01): niente esito, ma data / addetto / firma / provvedimenti
   const COL_CABINA = [
     { id: 'data', etichetta: 'Data esecuzione', tipo: 'data' },
-    { id: 'addetto', etichetta: 'Addetto', tipo: 'testo' },
+    { id: 'addetto', etichetta: 'Addetto', tipo: 'testo', utente: true },
     { id: 'firma', etichetta: 'Firma', tipo: 'firma' },
     { id: 'provv', etichetta: 'Provvedimenti assunti o suggeriti', tipo: 'testo' },
   ];
@@ -53,14 +54,15 @@
     'L\'impianto di protezione contro i fulmini risponde alla Norma CEI 81-10 o la struttura risulta autoprotetta.',
     'L\'impianto di antenna TV risponde alle relative Norme CEI.',
   ];
-  const DIFFERENZIALI = { tipo: 'tabella', min: 5, colonne: [
-    { id: 'tag', etichetta: 'TAG', tipo: 'testo', corto: true },
-    { id: 'circuito', etichetta: 'Circuito', tipo: 'testo', largo: true },
-    { id: 'classe', etichetta: 'Cl.', tipo: 'scelta', opzioni: ['AC', 'A', 'F', 'B'] },
-    { id: 'idn', etichetta: 'Idn', tipo: 'numero', unita: 'A', suggerimenti: ['0,01', '0,03', '0,3', '0,5', '1'] },
-    { id: 't', etichetta: 'T', tipo: 'numero', unita: 'ms' },
-    { id: 'esito', etichetta: 'Esito', tipo: 'esito' },
-  ] };
+  // differenziali di un quadro: TAG, circuito, classe e Idn si scrivono una volta (in VP01a o in VP01b)
+  // e compaiono anche nell'altra scheda ("comune"); ogni scheda ha poi il suo esito (e il tempo T in VP01b)
+  const DIFF_ELENCO = [
+    { id: 'tag', etichetta: 'TAG', tipo: 'testo', corto: true, comune: true },
+    { id: 'circuito', etichetta: 'Circuito', tipo: 'testo', largo: true, comune: true },
+    { id: 'classe', etichetta: 'Cl.', tipo: 'scelta', opzioni: ['AC', 'A', 'F', 'B'], comune: true },
+    { id: 'idn', etichetta: 'Idn', tipo: 'numero', unita: 'A', suggerimenti: ['0,01', '0,03', '0,3', '0,5', '1'], comune: true },
+  ];
+  const differenziali = altre => ({ tipo: 'tabella', min: 5, collegata: true, colonne: DIFF_ELENCO.concat(altre) });
   const ripetiQuadro = { etichetta: 'Quadro', campi: [{ id: 'quadro', etichetta: 'Quadro elettrico', tipo: 'testo' }] };
 
   window.GAMMA_MODELLI = window.GAMMA_MODELLI || {};
@@ -104,7 +106,7 @@
         blocchi: [
           { tipo: 'tabella', min: 3, colonne: [
             { id: 'nr', etichetta: 'Nr.', tipo: 'auto' },
-            { id: 'tecnico', etichetta: 'Tecnico', tipo: 'testo' },
+            { id: 'tecnico', etichetta: 'Tecnico', tipo: 'testo', utente: true },
             { id: 'data', etichetta: 'Data', tipo: 'data' },
             { id: 'tipo', etichetta: 'Tipo verifica', tipo: 'testo', suggerimenti: ['Verifica periodica', 'Manutenzione', 'Verifica iniziale'] },
           ] },
@@ -117,21 +119,23 @@
       },
       {
         id: 'VP01a', codice: 'VP01a', titolo: 'Prova di funzionamento degli interruttori differenziali, mediante tasto di prova',
-        breve: 'Differenziali - tasto prova', periodicita: 'semestrale', ripeti: ripetiQuadro,
+        breve: 'Differenziali - tasto prova', periodicita: 'semestrale', ripeti: ripetiQuadro, collegata: 'differenziali',
+        descrizione: 'Quadri e differenziali scritti qui compaiono già anche in VP01b (e viceversa).',
         blocchi: [
-          { tipo: 'tabella', min: 2, colonne: [
-            { id: 'prova', etichetta: 'Prova manuale', tipo: 'testo', largo: true, suggerimenti: ['Provati tutti i differenziali con tasto prova'] },
-            { id: 'data', etichetta: 'Data', tipo: 'data' },
-            { id: 'esecutore', etichetta: 'Esecutore', tipo: 'testo' },
-            { id: 'firma', etichetta: 'Firma', tipo: 'firma' },
-          ] },
-          { tipo: 'note' },
+          differenziali([{ id: 'esito', etichetta: 'Esito', tipo: 'esito' }]),
+          { tipo: 'firma' },
+          { tipo: 'note', frasi: ['Provati tutti i differenziali con tasto prova'] },
         ],
       },
       {
         id: 'VP01b', codice: 'VP01b', titolo: 'Prova di funzionamento degli interruttori differenziali, mediante prova strumentale',
-        breve: 'Differenziali - strumentale', periodicita: 'annuale', ripeti: ripetiQuadro,
-        blocchi: [ DIFFERENZIALI, { tipo: 'firma' }, { tipo: 'note', frasi: ['Provati tutti i differenziali con tasto prova'] } ],
+        breve: 'Differenziali - strumentale', periodicita: 'annuale', ripeti: ripetiQuadro, collegata: 'differenziali',
+        descrizione: 'Quadri e differenziali scritti qui compaiono già anche in VP01a (e viceversa).',
+        blocchi: [
+          differenziali([{ id: 't', etichetta: 'T', tipo: 'numero', unita: 'ms' }, { id: 'esito', etichetta: 'Esito', tipo: 'esito' }]),
+          { tipo: 'firma' },
+          { tipo: 'note' },
+        ],
       },
       {
         id: 'VP02', codice: 'VP02', titolo: 'Esame a vista generale', breve: 'Esame a vista generale', periodicita: 'biennale',
@@ -407,7 +411,7 @@
         blocchi: [
           { tipo: 'tabella', titolo: 'Prova di funzionamento a vuoto - periodicità 6 mesi', min: 2, colonne: [
             { id: 'data', etichetta: 'Data', tipo: 'data' },
-            { id: 'esecutore', etichetta: 'Esecutore', tipo: 'testo' },
+            { id: 'esecutore', etichetta: 'Esecutore', tipo: 'testo', utente: true },
             { id: 'firma', etichetta: 'Firma', tipo: 'firma' },
             { id: 'esito', etichetta: 'Esito', tipo: 'esito' },
             { id: 'note', etichetta: 'Note', tipo: 'testo' },
@@ -416,7 +420,7 @@
             { id: 'data', etichetta: 'Data', tipo: 'data' },
             { id: 'on', etichetta: 'Ora ON', tipo: 'ora' },
             { id: 'off', etichetta: 'Ora OFF', tipo: 'ora' },
-            { id: 'esecutore', etichetta: 'Esecutore', tipo: 'testo' },
+            { id: 'esecutore', etichetta: 'Esecutore', tipo: 'testo', utente: true },
             { id: 'firma', etichetta: 'Firma', tipo: 'firma' },
             { id: 'esito', etichetta: 'Esito', tipo: 'esito' },
           ] },

@@ -186,6 +186,9 @@
   .tec:first-child{border-top:none;}
   .tec img{width:90px;height:56px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:8px;}
   .tec input.in{flex:1;}
+  .btn.utente{max-width:220px;}
+  .btn.utente span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .btn.utente.no{border-color:var(--accent);color:var(--accent-text);}
 
   @media (max-width:560px){
     .li{flex-wrap:wrap;}
@@ -221,6 +224,7 @@
   <div class="brand"><span class="k">Γ</span><span class="t">GAMMA · Registri</span></div>
   <select class="btn" id="selReg" aria-label="Registro"></select>
   <span class="hsp"></span>
+  <button class="btn sm utente" id="btnUtente" title="Chi sta compilando: il nome va da solo negli Esecutori">👤 <span id="utNome">Accedi</span></button>
   <button class="btn sm primary" id="btnPdf" title="Scarica il registro in PDF">PDF</button>
   <button class="btn sm" id="btnTecnici" title="Tecnici e timbri (salvati solo su questo dispositivo)">⚙ Tecnici</button>
   <button class="btn sm" id="btnSvuota">Svuota</button>
@@ -253,6 +257,17 @@
     <div class="row"><button class="btn primary" id="tecAdd">+ Importa timbri…</button><input type="file" id="tecFile" accept="image/png,image/jpeg" multiple hidden>
       <span class="hsp"></span><button class="btn" onclick="chiudiTecnici()">Chiudi</button></div>
   </div>
+</div>
+
+<div class="pad-ov" id="utOv">
+  <form class="pad" id="utForm" role="dialog" aria-modal="true" aria-labelledby="utT" style="width:min(440px,100%)">
+    <h3 id="utT">Chi sta compilando?</h3>
+    <p class="desc" style="margin:4px 0 12px">Il nome va da solo in <b>Esecutore</b>, <b>Addetto</b> e <b>Tecnico</b> di tutte le schede. La firma resta a mano. Il nome resta su questo dispositivo.</p>
+    <label class="f">Nome e cognome<input class="in" id="utIn" list="utList" autocomplete="name" placeholder="es. Mario Rossi"></label>
+    <datalist id="utList"></datalist>
+    <div class="row"><button type="button" class="btn danger" id="utEsci">Esci</button><span class="hsp"></span>
+      <button type="button" class="btn" onclick="chiudiUtente()">Annulla</button><button class="btn primary">Accedi</button></div>
+  </form>
 </div>
 
 <div class="pad-ov" id="padOv" data-esc="chiudiFirma()">
@@ -388,6 +403,7 @@ function blocco(b,bi,base){
   if(b.tipo==='note') return `<div class="card"><h2>Note</h2>${b.frasi?`<div class="frasi">${b.frasi.map(f=>`<button type="button" class="btn sm" data-frase="${p}" data-v="${esc(f)}">+ ${esc(f)}</button>`).join('')}</div>`:''}<textarea class="in" data-p="${p}">${esc(get(p)||'')}</textarea></div>`;
   if(b.tipo==='firma'){
     if(get(p+'.data')==null) set(p+'.data',new Date().toISOString().slice(0,10));
+    if(get(p+'.esecutore')==null&&utente()) set(p+'.esecutore',utente());      // chi ha fatto l'accesso; si puo' cambiare
     return `<div class="card"><h2>Esecuzione</h2><div class="grid">${campo({etichetta:'Data',tipo:'data'},p+'.data')}${campo({etichetta:'Esecutore',tipo:'testo'},p+'.esecutore')}<label class="f">Firma${ctrl({tipo:'firma'},p+'.firma')}</label></div></div>`;
   }
   return '';
@@ -428,7 +444,8 @@ function render(){
         </div><canvas id="copCv" width="840" height="1188" aria-label="Anteprima del frontespizio"></canvas></div></div>`;
     }
   }else{
-    const sc=m.schede.find(s=>s.id===st.scheda), S=istanze(sc), base=st.reg+'.schede.'+sc.id+'.ist.'+S.sel;
+    const sc=m.schede.find(s=>s.id===st.scheda); sincronizza(sc);
+    const S=istanze(sc), base=st.reg+'.schede.'+sc.id+'.ist.'+S.sel;
     h=`<div class="ftit"><span class="c">${esc(sc.codice)}</span><h1>${esc(sc.titolo)}</h1></div>
       <div class="meta">${sc.periodicita?`<span class="tag per">Periodicità: ${esc(sc.periodicita)}</span>`:''}<span class="tag">${esc(m.norma)}</span></div>
       ${sc.descrizione?`<p class="desc">${esc(sc.descrizione)}</p>`:''}`;
@@ -512,6 +529,60 @@ $('tecFile').onchange=async e=>{
 };
 $('tecList').addEventListener('change',e=>{ const i=e.target.dataset.tec; if(i==null) return; const l=tecnici(); l[+i].nome=e.target.value.trim()||l[+i].nome; salvaTecnici(l); });
 $('tecList').addEventListener('click',e=>{ const b=e.target.closest('[data-deltec]'); if(!b) return; const l=tecnici(); if(!confirm('Eliminare il timbro di '+l[+b.dataset.deltec].nome+' da questo dispositivo?')) return; l.splice(+b.dataset.deltec,1); salvaTecnici(l); renderTecnici(); });
+// ---- chi sta compilando: il nome va da solo negli esecutori (colonne "utente" e blocco firma); la firma resta a mano.
+// GAMMA e' una pagina pubblica senza server: e' un accesso del dispositivo, senza password. ----
+function utente(){ try{ return localStorage.getItem('gammaUtente')||''; }catch(e){ return ''; } }
+function mostraUtente(){ const u=utente(); $('utNome').textContent=u||'Accedi'; $('btnUtente').classList.toggle('no',!u); }
+function apriUtente(){
+  $('utList').innerHTML=tecnici().map(t=>`<option value="${esc(t.nome)}">`).join('');
+  $('utIn').value=utente(); $('utEsci').hidden=!utente(); $('utOv').classList.add('open'); setTimeout(()=>$('utIn').focus(),50);
+}
+function chiudiUtente(){ $('utOv').classList.remove('open'); }
+$('btnUtente').onclick=apriUtente;
+$('utForm').onsubmit=e=>{ e.preventDefault(); const n=$('utIn').value.trim().replace(/\s+/g,' '); if(!n){ $('utIn').focus(); return; }
+  try{ localStorage.setItem('gammaUtente',n); }catch(err){} mostraUtente(); chiudiUtente(); renderNav(); };
+$('utEsci').onclick=()=>{ try{ localStorage.removeItem('gammaUtente'); }catch(e){} mostraUtente(); chiudiUtente(); };
+// una riga che riceve un dato prende chi ha fatto l'accesso nelle sue caselle "utente" ancora vuote
+function autoUtente(p){
+  const u=utente(), sc=M().schede.find(s=>s.id===st.scheda), v=get(p);
+  if(!u||!sc||v==null||v===''||v===false||(Array.isArray(v)&&!v.length)) return;
+  let m=p.match(/^(.*\.b\.(\d+))\.righe\.(\d+)\.([^.]+)$/), celle=[];
+  if(m) celle=(sc.blocchi[+m[2]].colonne||[]).filter(c=>c.utente&&c.id!==m[4]).map(c=>m[1]+'.righe.'+m[3]+'.'+c.id);
+  else if((m=p.match(/^(.*\.b\.(\d+))\.(r\d+)(?:_([^.]+))?$/))&&sc.blocchi[+m[2]].tipo==='lista')
+    celle=(sc.blocchi[+m[2]].colonne||[]).filter(c=>c.utente&&c.id!==m[4]).map(c=>m[1]+'.'+m[3]+'_'+c.id);
+  celle.filter(cp=>!get(cp)).forEach(cp=>{ set(cp,u); const el=$('foglio').querySelector(`[data-p="${CSS.escape(cp)}"]`); if(el) el.value=u; });
+}
+
+// ---- schede collegate (modello: "collegata"): stessi elementi ripetuti (quadri) e stesse righe nelle tabelle
+// collegate; le colonne "comune" si scrivono in una scheda e compaiono nelle altre (differenziali VP01a <-> VP01b).
+// Si allinea sempre dalla scheda aperta verso le altre (le modifiche si fanno solo li'). ----
+const collegate=sc=>sc&&sc.collegata?M().schede.filter(s=>s!==sc&&s.collegata===sc.collegata):[];
+const tabCollegate=sc=>sc.blocchi.map((b,bi)=>b.tipo==='tabella'&&b.collegata?bi:-1).filter(i=>i>=0);
+// copia le chiavi da "da" ad "a"; una chiave mai toccata in "da" la prende dall'altra scheda
+const copia=(da,a,chiavi)=>chiavi.forEach(k=>{ if(da[k]===undefined){ if(a[k]!==undefined) da[k]=a[k]; } else a[k]=da[k]; });
+function sincronizza(sc){
+  collegate(sc).forEach(dc=>{
+    const S=istanze(sc), D=istanze(dc), tS=tabCollegate(sc), tD=tabCollegate(dc);
+    while(D.ist.length<S.ist.length) D.ist.push({});
+    while(S.ist.length<D.ist.length) S.ist.push({});
+    S.ist.forEach((I,i)=>{ const J=D.ist[i];
+      if(sc.ripeti&&dc.ripeti){ I.id=I.id||{}; J.id=J.id||{}; copia(I.id,J.id,sc.ripeti.campi.map(c=>c.id).filter(k=>dc.ripeti.campi.some(c=>c.id===k))); }
+      tS.forEach((bi,k)=>{ const bj=tD[k]; if(bj==null) return;
+        const bS=sc.blocchi[bi], bD=dc.blocchi[bj];
+        I.b=I.b||{}; J.b=J.b||{}; const vS=I.b[bi]=I.b[bi]||{}, vD=J.b[bj]=J.b[bj]||{};
+        const n=Math.max((vS.righe||[]).length,(vD.righe||[]).length,bS.min||1,bD.min||1);
+        const rS=vS.righe=vS.righe||[], rD=vD.righe=vD.righe||[];
+        while(rS.length<n) rS.push({}); while(rD.length<n) rD.push({});
+        const comuni=bS.colonne.filter(c=>c.comune&&bD.colonne.some(d=>d.id===c.id&&d.comune)).map(c=>c.id);
+        rS.forEach((r,ri)=>copia(r,rD[ri],comuni));
+      });
+    });
+  });
+}
+// elimina la riga (o il quadro) anche dalle schede collegate, alla stessa posizione
+function righeCollegate(sc,p){ const m=p.match(/\.ist\.(\d+)\.b\.(\d+)$/), k=m?tabCollegate(sc).indexOf(+m[2]):-1;
+  return k<0?[]:collegate(sc).map(dc=>{ const bj=tabCollegate(dc)[k], J=istanze(dc).ist[+m[1]]; return bj==null||!J?null:(((J.b||{})[bj]||{}).righe||null); }).filter(Boolean); }
+
 // controlli calcolati (blocco 'verifiche'): usano i campi della scheda corrente
 function aggiornaCalcoli(){
   const sc=M().schede.find(s=>s.id===st.scheda); if(!sc) return;
@@ -530,25 +601,32 @@ const renderNav=()=>{ const y=$('foglio').parentElement.scrollTop; render(); $('
 $('nav').onclick=e=>{ const b=e.target.closest('[data-sc]'); if(!b) return; st.scheda=b.dataset.sc; render(); $('foglio').parentElement.scrollTop=0; };
 $('selReg').onchange=e=>{ st.reg=e.target.value; st.scheda='_intest'; render(); };
 $('btnSvuota').onclick=()=>{ if(confirm('Svuotare tutte le prove di compilazione?')){ V={}; render(); } };
-$('foglio').addEventListener('input',e=>{ const p=e.target.dataset.p; if(!p) return; set(p,e.target.value); if(e.target.tagName==='SELECT') renderNav(); else{ const s=$('nav').querySelector('.ni.on .prog'); if(s) renderNavSolo(); aggiornaCalcoli(); if(/\.(cop|intest)\./.test(p)) copDopo(); } });
+const scAperta=()=>M().schede.find(s=>s.id===st.scheda);
+$('foglio').addEventListener('input',e=>{ const p=e.target.dataset.p; if(!p) return; set(p,e.target.value); autoUtente(p); sincronizza(scAperta()); if(e.target.tagName==='SELECT') renderNav(); else{ const s=$('nav').querySelector('.ni.on .prog'); if(s) renderNavSolo(); aggiornaCalcoli(); if(/\.(cop|intest)\./.test(p)) copDopo(); } });
 function renderNavSolo(){ const sc=M().schede.find(s=>s.id===st.scheda); if(!sc) return; const a=avanzamento(sc), el=$('nav').querySelector('.ni.on .prog'); if(el&&a){ el.textContent=a.fatti+'/'+a.tot; el.classList.toggle('full',a.fatti===a.tot); } }
 $('foglio').addEventListener('click',e=>{
   const fi=e.target.closest('.firmabox img');                 // toccare una firma la rifa
   if(fi){ const fb=fi.parentElement.querySelector('[data-firma]'); if(fb){ apriFirma(fb.dataset.firma); return; } }
   const b=e.target.closest('button'); if(!b) return;
   const p=b.dataset.p;
-  if(p&&b.dataset.v!=null&&!b.dataset.frase){ set(p,get(p)===b.dataset.v?'':b.dataset.v); renderNav(); return; }          // esito/scelta: ritocco = annulla
-  if(p&&b.dataset.m!=null){ const a=(get(p)||[]).slice(), i=a.indexOf(b.dataset.m); i<0?a.push(b.dataset.m):a.splice(i,1); set(p,a); renderNav(); return; }
-  if(p&&b.hasAttribute('data-s')){ set(p,!get(p)); renderNav(); return; }
+  if(p&&b.dataset.v!=null&&!b.dataset.frase){ set(p,get(p)===b.dataset.v?'':b.dataset.v); autoUtente(p); renderNav(); return; }          // esito/scelta: ritocco = annulla
+  if(p&&b.dataset.m!=null){ const a=(get(p)||[]).slice(), i=a.indexOf(b.dataset.m); i<0?a.push(b.dataset.m):a.splice(i,1); set(p,a); autoUtente(p); renderNav(); return; }
+  if(p&&b.hasAttribute('data-s')){ set(p,!get(p)); autoUtente(p); renderNav(); return; }
   if(b.dataset.addrow){ const rr=get(b.dataset.addrow+'.righe'); rr.push({}); renderNav(); return; }
-  if(b.dataset.delrow){ const rr=get(b.dataset.delrow+'.righe'), i=+b.dataset.i; const r=rr[i];
-    if(Object.values(r).some(x=>x)&&!confirm('Eliminare la riga compilata?')) return; rr.splice(i,1); renderNav(); return; }
+  if(b.dataset.delrow){ const rr=get(b.dataset.delrow+'.righe'), i=+b.dataset.i, altre=righeCollegate(scAperta(),b.dataset.delrow);
+    const piena=[rr].concat(altre).some(x=>x[i]&&Object.values(x[i]).some(v=>v));
+    const anche=altre.length?' Sparisce anche da '+collegate(scAperta()).map(s=>s.codice).join(', ')+'.':'';
+    if(piena&&!confirm('Eliminare la riga compilata?'+anche)) return; rr.splice(i,1); altre.forEach(x=>x.splice(i,1)); renderNav(); return; }
   if(b.dataset.frase){ const t=get(b.dataset.frase)||''; set(b.dataset.frase,(t?t.replace(/\s*$/,'')+'\n':'')+b.dataset.v); renderNav(); return; }
   if(b.dataset.firma){ apriFirma(b.dataset.firma); return; }
   const sc=M().schede.find(s=>s.id===st.scheda);
   if(b.dataset.ist!=null){ istanze(sc).sel=+b.dataset.ist; render(); return; }
   if(b.hasAttribute('data-addist')){ const S=istanze(sc); S.ist.push({}); S.sel=S.ist.length-1; render(); return; }
-  if(b.hasAttribute('data-delist')){ const S=istanze(sc); if(!confirm('Eliminare questo '+sc.ripeti.etichetta.toLowerCase()+' e i suoi dati?')) return; S.ist.splice(S.sel,1); S.sel=Math.max(0,S.sel-1); render(); }
+  if(b.hasAttribute('data-delist')){ const S=istanze(sc), co=collegate(sc);
+    if(!confirm('Eliminare questo '+sc.ripeti.etichetta.toLowerCase()+' e i suoi dati?'+(co.length?' Sparisce anche da '+co.map(s=>s.codice).join(', ')+'.':''))) return;
+    const i=S.sel; S.ist.splice(i,1); S.sel=Math.max(0,i-1);
+    co.forEach(dc=>{ const D=istanze(dc); D.ist.splice(i,1); if(!D.ist.length) D.ist.push({}); if(D.sel>=i) D.sel=Math.max(0,D.sel-1); });
+    render(); }
 });
 
 // ---- firma con dito o Apple Pencil (pressione = spessore) ----
@@ -567,9 +645,9 @@ function chiudiFirma(){ $('padOv').classList.remove('open'); pad.p=null; }
   c.addEventListener('pointermove',e=>{ if(!giu) return; const q=pt(e), x=pad.ctx; x.lineWidth=q.w; x.beginPath(); x.moveTo(last.x,last.y); x.lineTo(q.x,q.y); x.stroke(); last=q; pad.vuota=false; });
   ['pointerup','pointercancel'].forEach(t=>c.addEventListener(t,()=>{ giu=false; }));
   $('padClear').onclick=()=>{ pad.ctx.clearRect(0,0,c.width,c.height); pad.vuota=true; };
-  $('padOk').onclick=()=>{ if(pad.p) set(pad.p,pad.vuota?'':c.toDataURL('image/png')); chiudiFirma(); renderNav(); };
+  $('padOk').onclick=()=>{ if(pad.p){ set(pad.p,pad.vuota?'':c.toDataURL('image/png')); autoUtente(pad.p); } chiudiFirma(); renderNav(); };
 })();
-document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; if($('padOv').classList.contains('open')) chiudiFirma(); else if($('pdfOv').classList.contains('open')) chiudiPdf(); else if($('tecOv').classList.contains('open')) chiudiTecnici(); });
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; if($('padOv').classList.contains('open')) chiudiFirma(); else if($('utOv').classList.contains('open')) chiudiUtente(); else if($('pdfOv').classList.contains('open')) chiudiPdf(); else if($('tecOv').classList.contains('open')) chiudiTecnici(); });
 
 // ---- PDF ----
 function apriPdf(){
@@ -594,7 +672,9 @@ $('pdfOv').addEventListener('click',async e=>{
   finally{ b.disabled=false; b.textContent=t; }
 });
 
+mostraUtente();
 render();
+if(!utente()) apriUtente();                  // all'apertura: chi compila?
 </script>
 </body>
 </html>

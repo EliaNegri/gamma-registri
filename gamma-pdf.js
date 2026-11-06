@@ -174,7 +174,7 @@
         const bv = blocchiDi(I)[bi];
         if (vuoto(bv)) return false;
         if (typeof bv === 'string') return true;
-        if (b.tipo === 'firma') return !vuoto(bv.firma) || !vuoto(bv.esecutore);
+        if (b.tipo === 'firma') return !vuoto(bv.firma);    // data ed esecutore li mette l'app (giorno, chi ha fatto l'accesso)
         if (b.tipo === 'tabella') return (bv.righe || []).some(r => Object.entries(r).some(([k, v]) => !vuoto(v)));
         return Object.entries(bv).some(([k, v]) => !/_per$/.test(k) && !vuoto(v));
       });

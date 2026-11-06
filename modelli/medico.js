@@ -18,7 +18,12 @@
        note    : testo libero, frasi[] = frasi rapide da inserire con un tocco
        firma   : data, esecutore, firma (con dito o Apple Pencil)
    - tipi di campo: testo, numero (unita), data, ora, scelta (opzioni), multi (opzioni, piu' scelte),
-     spunta, esito (P/N/NA), firma, auto (numerazione progressiva). */
+     spunta, esito (P/N/NA), firma, auto (numerazione progressiva).
+   - utente: true (colonna di tabella o di lista) = si compila col nome di chi ha fatto l'accesso appena la riga
+     ha un dato; l'"Esecutore" del blocco firma si compila da solo allo stesso modo. La firma resta a mano.
+   - collegata: '<gruppo>' (scheda) = le schede con lo stesso gruppo hanno gli stessi elementi ripetuti (quadri...)
+     e le loro tabelle con "collegata: true" le stesse righe; le colonne "comune: true" si scrivono una volta
+     sola e compaiono in tutte (es. differenziali VP01a / VP01b del registro 81-08). */
 window.GAMMA_MODELLI = window.GAMMA_MODELLI || {};
 window.GAMMA_MODELLI.medico = {
   id: 'medico',
@@ -43,7 +48,7 @@ window.GAMMA_MODELLI.medico = {
       blocchi: [
         { tipo: 'tabella', min: 3, colonne: [
           { id: 'nr', etichetta: 'Nr.', tipo: 'auto' },
-          { id: 'tecnico', etichetta: 'Tecnico', tipo: 'testo' },
+          { id: 'tecnico', etichetta: 'Tecnico', tipo: 'testo', utente: true },
           { id: 'data', etichetta: 'Data', tipo: 'data' },
           { id: 'tipo', etichetta: 'Tipo verifica', tipo: 'testo', suggerimenti: ['Verifica periodica', 'Visita', 'Verifica straordinaria'] },
         ] },
@@ -137,7 +142,7 @@ window.GAMMA_MODELLI.medico = {
           colonne: [
             { id: 'mese', etichetta: 'Mese', tipo: 'fisso' },
             { id: 'giorno', etichetta: 'Giorno', tipo: 'numero', decimali: 0 },
-            { id: 'esecutore', etichetta: 'Esecutore', tipo: 'testo' },
+            { id: 'esecutore', etichetta: 'Esecutore', tipo: 'testo', utente: true },
             { id: 'firma', etichetta: 'Firma', tipo: 'firma' },
             { id: 'esito', etichetta: 'Esito', tipo: 'esito' },
             { id: 'note', etichetta: 'Note', tipo: 'testo' },
@@ -155,7 +160,7 @@ window.GAMMA_MODELLI.medico = {
           { id: 'data', etichetta: 'Data', tipo: 'data' },
           { id: 'on', etichetta: 'Ora ON', tipo: 'ora' },
           { id: 'off', etichetta: 'Ora OFF', tipo: 'ora' },
-          { id: 'esecutore', etichetta: 'Esecutore', tipo: 'testo' },
+          { id: 'esecutore', etichetta: 'Esecutore', tipo: 'testo', utente: true },
           { id: 'firma', etichetta: 'Firma', tipo: 'firma' },
           { id: 'esito', etichetta: 'Esito', tipo: 'esito' },
         ] },
