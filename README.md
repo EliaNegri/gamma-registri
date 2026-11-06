@@ -9,7 +9,7 @@ all'Officina PrezzarioMega (card Γ nel menu, archivio nella cartella condivisa)
 | Fase | Contenuto | Stato |
 |---|---|---|
 | 1 | Modelli dei registri + pagina di anteprima | registri **medico**, **fotovoltaico** e **81-08** fatti (`modelli/`, `anteprima.html`) |
-| 2 | Prototipo: strutture, visite, salvataggio sul dispositivo, PDF e Word | **PDF** fatto (`gamma-pdf.js`, pulsante PDF nell'anteprima); il resto da fare |
+| 2 | Prototipo: strutture, visite, salvataggio sul dispositivo, PDF e Word | **PDF** fatto; **progetti** salvati sul dispositivo con esporta/importa `.gamma`; visite e Word da fare |
 | 4 | Integrazione nella suite e archivio condiviso | da fare |
 | 5 | Sincronizzazione automatica Microsoft 365 (SharePoint) | da valutare |
 
@@ -20,6 +20,15 @@ Ogni registro è un file `modelli/<id>.js` che descrive intestazione e schede co
 I modelli **non contengono dati di clienti o tecnici**: quelli si inseriscono nella struttura.
 
 Le schede Word di partenza sono nella cartella `Registri` dell'Officina (non pubblicata qui).
+
+## Progetti e salvataggio
+
+- Un **progetto** = un registro di una struttura. Si crea, apre, duplica, rinomina ed elimina da **📁 Progetti**.
+- Ogni modifica si salva da sola **sul dispositivo** (IndexedDB del browser, firme comprese): ricaricare la pagina non perde nulla.
+- **Esporta** crea un file `.gamma` (JSON con tutto il progetto): è la copia da archiviare nella cartella dello studio
+  e il modo per passare un progetto tra iPad e PC (**Importa file…**). I dati del browser restano solo su quel
+  dispositivo e si perdono se si cancellano i dati di navigazione: esportare a fine lavoro.
+- **👤 Accedi**: il nome di chi compila va da solo in Esecutore / Addetto / Tecnico (solo sul dispositivo, senza password).
 
 ## Font, cartiglio e timbri
 

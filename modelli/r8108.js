@@ -154,7 +154,7 @@
             { id: 'esito', etichetta: 'Esito', tipo: 'esito' },
           ] },
           { tipo: 'firma' },
-          { tipo: 'note' },
+          { tipo: 'note', frasi: ['Prova campione con esito positivo'] },
         ],
       },
       {
